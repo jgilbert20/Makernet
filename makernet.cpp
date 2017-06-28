@@ -165,7 +165,6 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	if ( len <= 0 or buffer == NULL ) return;
 	makernetPacketHeader_t *mp = (makernetPacketHeader_t *)buffer;
 
-
 	snprintf( debugBuffer, 255,
 	          "%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
 	          mp->dest, mp->src, mp->port, mp->size );
@@ -180,7 +179,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 void Network::sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload)
 {
-
+	((makernetPacketHeader_t)receiveBuffer).dest = 1;
 
 
 
