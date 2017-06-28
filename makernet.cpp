@@ -1,8 +1,8 @@
 // Makernet revised core library rebuilt with improved hygene and ability to
 // be tested and debugged on OSX
 
-//  c++ -DMASTER makernet.cpp -o master
-//  c++ -DSLAVE makernet.cpp -o slave
+//  c++ -DMASTER makernet.cpp -o master && ./master
+//  c++ -DSLAVE makernet.cpp -o slave && ./slave
 
 
 #include <stdio.h>
@@ -22,38 +22,49 @@
 #define MAX(x,y) x > y ? x : y;
 #define MIN(x,y) x > y ? y : x;
 
+// Ardiono proxy stuff
 
+#ifndef ARDUINO
 #define HEX 0x10
 
+void printDebug( const char *s );
+
+void printDebug( char *s );
+void printDebug( int i);
+void printDebug( uint8_t i, int format);
+void printDebugln( char *s );
+#endif
 
 void hexPrint( uint8_t *buffer, int size );
-
-void printDebug( const char *s );
-void printDebug( int i);
-void printDebug( int i, int format);
-void printDebugln( char *s );
+uint8_t crc8_ccitt_update (uint8_t inCrc, uint8_t inData);
 
 // util.cpp
 
+#ifndef ARDUINO
 
 void printDebug( const char *s )
 {
 	printf( "%s", s );
 }
 
-void printDebug( int i)
+
+void printDebug( char *s )
+{
+	printf( "%s", s );
+}
+
+
+void printDebug( int i )
 {
 	printf( "%d", i );
 }
 
-void printDebug( int i, int format)
+void printDebug( uint8_t i, int format)
 {
-	if ( format == HEX )
-	{
+	if ( format == HEX ) {
 		printf( "%x", i );
 	}
 }
-
 
 void printDebugln( char *s )
 {
@@ -65,23 +76,121 @@ void printDebugln( )
 	printf( "\n" );
 }
 
+#endif
+
 void hexPrint( uint8_t *buffer, int size )
 {
-	for ( int i = 0 ; i < size ; i++ )
-	{
+	for ( int i = 0 ; i < size ; i++ ) {
 		uint8_t value = buffer[i];
 		if (value < 0x10)
-			DPR('0');
+			DPR("0");
 		DPR(value, HEX);
 		DPR( " " );
 	}
 }
 
+// CCITT CRC, originally from Atmel
 
-// The datalink layer handles putting bytes on wires with no
-// knowledge of what those bytes mean. Each collection of bytes
-// is called a "frame". The datalink interface is made interchangable so that multiple datalinks
-// such as I2C, RFM, and even ethernet could all be makernet enabled.
+uint8_t crc8_ccitt_update (uint8_t inCrc, uint8_t inData)
+{
+	uint8_t i;
+	uint8_t data;
+	data = inCrc ^ inData;
+	for ( i = 0; i < 8; i++ ) {
+		if (( data & 0x80 ) != 0 ) {
+			data <<= 1;
+			data ^= 0x07;
+		} else {
+			data <<= 1;
+		}
+	}
+	return data;
+}
+
+
+
+
+
+
+// The Network object implements a layer of the "network" - contiguous set of
+// nodes over one or more data links. Handles forming packets, managing
+// addresses, etc. All Makernet networks must have one "controller".
+//
+// Some specific definitions:
+// "addresss" - a one-byte assignable locator. 00 is not assigned. FF is broadcast.
+// "deviceID" - a permanent 16 bit
+//
+// All makernet packets have the following format:
+//
+// (0)  [address]
+// (1)  [port]
+// (2)  [size 0-255 of payload]
+// (3+) [payload 1...size]
+// (n)  [CRC]
+//
+// All network traffic will follow this format
+//
+// The network class maintains a registry of packet Endpoints each identified by
+// a port number 0..15.
+//
+// 0 is reserved as an endpoint for network control functions.
+
+class Network {
+
+public:
+	// Called by the datalink layer on receipt of a new frame
+	void handleFrame( uint8_t *buffer, uint8_t len );
+	// A universal way to send a packet
+	void sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
+
+private:
+
+
+
+};
+
+
+typedef struct {
+	uint8_t dest;
+	uint8_t src;
+	uint8_t port;
+	uint8_t size;
+	uint8_t payload[];
+} makernetPacketHeader_t;
+
+char debugBuffer[255];
+
+void Network::handleFrame(uint8_t *buffer, uint8_t len )
+{
+	if ( len <= 0 or buffer == NULL ) return;
+	makernetPacketHeader_t *mp = (makernetPacketHeader_t *)buffer;
+
+
+	snprintf( debugBuffer, 255,
+	          "%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
+	          mp->dest, mp->src, mp->port, mp->size );
+	DPR( debugBuffer );
+	DPR( sizeof(makernetPacketHeader_t) );
+	DLN();
+
+
+
+
+}
+
+void Network::sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload)
+{
+
+
+
+
+
+}
+
+// The datalink layer handles putting bytes on wires with no knowledge of what
+// those bytes mean. Each collection of bytes is called a "frame". The
+// datalink interface is made interchangable so that multiple datalinks such
+// as I2C, RFM, and even ethernet could all be makernet enabled.
 
 #define MAX_MAKERNET_FRAME_LENGTH 255
 
@@ -90,24 +199,27 @@ typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
 class Datalink {
 
 public:
-	// Start the datalink
+	// Start the datalink including any external peripherals
 	virtual void initialize() = 0;
 	// Send a single frame
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
 	// Register a callback when new frames arrive
-	void onReceive( frameReceiveCallback_t t );
+// 	void onReceive( frameReceiveCallback_t t );
 
-private:
-	frameReceiveCallback_t frameReceiveCallback;
+// private:
+// 	frameReceiveCallback_t frameReceiveCallback;
+
+	Network *network;
+
 
 };
 
 // Our callers can use this to set a callback when a new frame is received
 
-void Datalink::onReceive( frameReceiveCallback_t t )
-{
-	frameReceiveCallback = t;
-}
+// void Datalink::onReceive( frameReceiveCallback_t t )
+// {
+// 	frameReceiveCallback = t;
+// }
 
 // An implementation of UNIX domain socket master
 
@@ -242,7 +354,7 @@ void UnixSlave::loop()
 		exit(1);
 	}
 
-	printf("Connected.\n");
+	printf("<<<< Inbound transaction\n");
 
 	done = 0;
 	do {
@@ -252,25 +364,54 @@ void UnixSlave::loop()
 			done = 1;
 		}
 
+		DPR( ">>>> (" );
+		DPR( n );
+		DPR( ") ");
+		hexPrint( receiveBuffer, n );
+		DLN();
+
+		network->handleFrame( receiveBuffer, n );
+
 		if (!done)
 			if (send(s2, receiveBuffer, n, 0) < 0) {
 				perror("send");
 				done = 1;
 			}
+
+		DPR( "<<<< (" );
+		DPR( n );
+		DPR( ") ");
+		hexPrint( receiveBuffer, n );
+		DLN();
+
 	} while (!done);
 
 	close(s2);
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
 #ifdef MASTER
 
 int main(void)
 {
+	uint8_t x[] = { 1, 2, 3, 4, 5 };
+
 	UnixMaster um;
 	um.initialize();
 
-	um.sendFrame( (uint8_t *)"hello", 5 );
+	um.sendFrame( x , 5 );
+
 
 
 }
@@ -279,8 +420,11 @@ int main(void)
 
 int main(void)
 {
+	Network net;
+
 	UnixSlave us;
 	us.initialize();
+	us.network = &net;
 
 	while (1)
 		us.loop();
