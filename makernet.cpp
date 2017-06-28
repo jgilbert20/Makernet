@@ -14,6 +14,11 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+// globals.h
+
+#define ADDR_UNASSIGNED 0x00
+#define ADDR_BROADCAST  0xFF
+
 // util.h
 
 #define UI8(x) static_cast<uint8_t>(x)
@@ -108,6 +113,13 @@ uint8_t crc8_ccitt_update (uint8_t inCrc, uint8_t inData)
 }
 
 
+uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
+{
+	uint8_t crc = 0;
+	for( int i = 0 ; i < size ; i++ )
+		crc = crc8_ccitt_update( crc, *b++ );
+	return crc;
+}
 
 
 
@@ -135,16 +147,53 @@ uint8_t crc8_ccitt_update (uint8_t inCrc, uint8_t inData)
 //
 // 0 is reserved as an endpoint for network control functions.
 
+class Datalink;
+
 class Network {
 
 public:
 	// Called by the datalink layer on receipt of a new frame
 	void handleFrame( uint8_t *buffer, uint8_t len );
 	// A universal way to send a packet
-	void sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
-	class Datalink *datalink;
+	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
+	Datalink *datalink;
+
+	int address;
 
 private:
+int sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
+
+};
+
+
+// The datalink layer handles putting bytes on wires with no knowledge of what
+// those bytes mean. Each collection of bytes is called a "frame". The
+// datalink interface is made interchangable so that multiple datalinks such
+// as I2C, RFM, and even ethernet could all be makernet enabled.
+
+#define MAX_MAKERNET_FRAME_LENGTH 255
+
+typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
+
+class Datalink {
+
+public:
+	// Start the datalink including any external peripherals
+	virtual void initialize() = 0;
+	// Send a single frame
+	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
+
+	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];
+
+
+	// Register a callback when new frames arrive
+// 	void onReceive( frameReceiveCallback_t t );
+
+// private:
+// 	frameReceiveCallback_t frameReceiveCallback;
+
+	Network *network;
+	uint8_t address;
 
 };
 
@@ -176,50 +225,55 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 }
 
-void Network::sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload)
+
+
+// sendRawPacket(..) is the core function that assembles a packet into a
+// frame. The resulting frame looks like this:
+//
+// (0)  [dst address]
+// (1)  [src adddress]
+// (2)  [port]
+// (2)  [size 0-255 of payload]
+// (3+) [payload 0...size]
+// (n)  [CRC]
+
+int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload)
 {
-	uint8_t *buffer;
-	uint8_t *size;
+	if( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
+		return -100;
 
-	datalink->getFrameBuffer( &buffer, &size );
+	uint8_t *buffer = datalink->frameBuffer;
 
-	///((makernetPacketHeader_t)datalink->frameBuffer).dest = 1;
+	((makernetPacketHeader_t *)buffer)->dest = destination;
+	((makernetPacketHeader_t *)buffer)->src = src;
+	((makernetPacketHeader_t *)buffer)->port = port;
+	((makernetPacketHeader_t *)buffer)->size = size;
 
+	int crc = calculateCRC( 0, buffer, sizeof( makernetPacketHeader_t ) );
 
+	uint8_t *payloadPtr = ((makernetPacketHeader_t *)buffer)->payload;
 
+	for( int i = 0 ; i < size ; i++ ) {
+		payloadPtr[i] = payload[i];
+		crc = crc8_ccitt_update( crc, payload[i] );
+	}
+
+	payloadPtr[size] = crc;
+
+	datalink->sendFrame( buffer, sizeof( makernetPacketHeader_t ) + size + 1 );	
+}
+
+int Network::sendPacket( uint8_t destination, uint8_t port, uint8_t size, uint8_t *payload)
+{
+	if ( address == ADDR_UNASSIGNED ) {
+		DPR( "ASSERT: Address not configured");
+		return -1;
+	}
+
+	return sendRawPacket( destination, address, port, size, payload );
 
 }
 
-// The datalink layer handles putting bytes on wires with no knowledge of what
-// those bytes mean. Each collection of bytes is called a "frame". The
-// datalink interface is made interchangable so that multiple datalinks such
-// as I2C, RFM, and even ethernet could all be makernet enabled.
-
-#define MAX_MAKERNET_FRAME_LENGTH 255
-
-typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
-
-class Datalink {
-
-public:
-	// Start the datalink including any external peripherals
-	virtual void initialize() = 0;
-	// Send a single frame
-	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
-
-	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];
-
-
-	// Register a callback when new frames arrive
-// 	void onReceive( frameReceiveCallback_t t );
-
-// private:
-// 	frameReceiveCallback_t frameReceiveCallback;
-
-	Network *network;
-
-
-};
 
 // Our callers can use this to set a callback when a new frame is received
 
@@ -287,7 +341,7 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 	int t;
 
 	if ((t = recv(sock, frameBuffer, MAX_MAKERNET_FRAME_LENGTH, 0)) > 0) {
-		receiveBuffer[t] = '\0';
+		frameBuffer[t] = '\0';
 
 		DPR( ">>>> (" );
 		DPR( t );
@@ -411,13 +465,19 @@ void UnixSlave::loop()
 
 int main(void)
 {
+		Network net;
+
 	uint8_t x[] = { 1, 2, 3, 4, 5 };
 
 	UnixMaster um;
 	um.initialize();
+	net.datalink = &um;
+	um.network = &net;
 
-	um.sendFrame( x , 5 );
+	// um.sendFrame( x , 5 );
 
+	net.address = 0x55;
+	net.sendPacket( 0x22, 0x15, 5, x );
 
 
 }
@@ -432,7 +492,7 @@ int main(void)
 
 	UnixSlave us;
 	us.initialize();
-		net.datalink = &us; 
+	net.datalink = &us;
 	us.network = &net;
 
 	while (1)
