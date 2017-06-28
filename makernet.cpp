@@ -142,10 +142,9 @@ public:
 	void handleFrame( uint8_t *buffer, uint8_t len );
 	// A universal way to send a packet
 	void sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
+	class Datalink *datalink;
 
 private:
-
-
 
 };
 
@@ -179,7 +178,12 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 void Network::sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload)
 {
-	((makernetPacketHeader_t)receiveBuffer).dest = 1;
+	uint8_t *buffer;
+	uint8_t *size;
+
+	datalink->getFrameBuffer( &buffer, &size );
+
+	///((makernetPacketHeader_t)datalink->frameBuffer).dest = 1;
 
 
 
@@ -202,6 +206,10 @@ public:
 	virtual void initialize() = 0;
 	// Send a single frame
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
+
+	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];
+
+
 	// Register a callback when new frames arrive
 // 	void onReceive( frameReceiveCallback_t t );
 
@@ -229,7 +237,6 @@ public:
 private:
 	struct sockaddr_un remote;
 	int sock;
-	uint8_t receiveBuffer[MAX_MAKERNET_FRAME_LENGTH];
 
 };
 
@@ -279,13 +286,13 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 	int t;
 
-	if ((t = recv(sock, receiveBuffer, MAX_MAKERNET_FRAME_LENGTH, 0)) > 0) {
+	if ((t = recv(sock, frameBuffer, MAX_MAKERNET_FRAME_LENGTH, 0)) > 0) {
 		receiveBuffer[t] = '\0';
 
 		DPR( ">>>> (" );
 		DPR( t );
 		DPR( ") ");
-		hexPrint( receiveBuffer, t );
+		hexPrint( frameBuffer, t );
 		DLN();
 		// printf("echo> %s", receiveBuffer);
 	} else {
@@ -357,7 +364,7 @@ void UnixSlave::loop()
 
 	done = 0;
 	do {
-		n = recv(s2, receiveBuffer, MAX_MAKERNET_FRAME_LENGTH, 0);
+		n = recv(s2, frameBuffer, MAX_MAKERNET_FRAME_LENGTH, 0);
 		if (n <= 0) {
 			if (n < 0) perror("recv");
 			done = 1;
@@ -366,13 +373,13 @@ void UnixSlave::loop()
 		DPR( ">>>> (" );
 		DPR( n );
 		DPR( ") ");
-		hexPrint( receiveBuffer, n );
+		hexPrint( frameBuffer, n );
 		DLN();
 
-		network->handleFrame( receiveBuffer, n );
+		network->handleFrame( frameBuffer, n );
 
 		if (!done)
-			if (send(s2, receiveBuffer, n, 0) < 0) {
+			if (send(s2, frameBuffer, n, 0) < 0) {
 				perror("send");
 				done = 1;
 			}
@@ -380,7 +387,7 @@ void UnixSlave::loop()
 		DPR( "<<<< (" );
 		DPR( n );
 		DPR( ") ");
-		hexPrint( receiveBuffer, n );
+		hexPrint( frameBuffer, n );
 		DLN();
 
 	} while (!done);
@@ -421,8 +428,11 @@ int main(void)
 {
 	Network net;
 
+
+
 	UnixSlave us;
 	us.initialize();
+		net.datalink = &us; 
 	us.network = &net;
 
 	while (1)
