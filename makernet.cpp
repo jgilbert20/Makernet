@@ -24,6 +24,7 @@
 #define UI8(x) static_cast<uint8_t>(x)
 #define DPR( X... )			   printDebug( X )
 #define DLN( X... )			   printDebugln( X )
+#define DPF( X... )			   { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
 #define MAX(x,y) x > y ? x : y;
 #define MIN(x,y) x > y ? y : x;
 
@@ -33,17 +34,24 @@
 #define HEX 0x10
 
 void printDebug( const char *s );
-
 void printDebug( char *s );
 void printDebug( int i);
 void printDebug( uint8_t i, int format);
 void printDebugln( char *s );
+
 #endif
+
+// Stuff must go away if not in debug mode...
+
+
+
+
+
+// util.cpp
 
 void hexPrint( uint8_t *buffer, int size );
 uint8_t crc8_ccitt_update (uint8_t inCrc, uint8_t inData);
 
-// util.cpp
 
 #ifndef ARDUINO
 
@@ -116,7 +124,7 @@ uint8_t crc8_ccitt_update (uint8_t inCrc, uint8_t inData)
 uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 {
 	uint8_t crc = 0;
-	for( int i = 0 ; i < size ; i++ )
+	for ( int i = 0 ; i < size ; i++ )
 		crc = crc8_ccitt_update( crc, *b++ );
 	return crc;
 }
@@ -161,7 +169,7 @@ public:
 	int address;
 
 private:
-int sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
+	int sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
 
 };
 
@@ -206,23 +214,26 @@ typedef struct {
 	uint8_t payload[];
 } makernetPacketHeader_t;
 
-char debugBuffer[255];
 
 void Network::handleFrame(uint8_t *buffer, uint8_t len )
 {
 	if ( len <= 0 or buffer == NULL ) return;
 	makernetPacketHeader_t *mp = (makernetPacketHeader_t *)buffer;
 
-	snprintf( debugBuffer, 255,
-	          "%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
-	          mp->dest, mp->src, mp->port, mp->size );
-	DPR( debugBuffer );
+	// snprintf( debugBuffer, 255,
+	//           "%%%%%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
+	//           mp->dest, mp->src, mp->port, mp->size );
+	DPF( "%%%%%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
+	     mp->dest, mp->src, mp->port, mp->size );
+
 	DPR( sizeof(makernetPacketHeader_t) );
 	DLN();
 
+	// Verify checksum
+	uint8_t calculatedCRC = calculateCRC(0, buffer, len - 1 );
+	uint8_t presentedCRC = buffer[len - 1];
 
-
-
+	DPF( "%%%%%%%% CRC check: (%x) vs (%x)\n", calculatedCRC, presentedCRC );
 }
 
 
@@ -239,7 +250,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload)
 {
-	if( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
+	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
 		return -100;
 
 	uint8_t *buffer = datalink->frameBuffer;
@@ -253,14 +264,14 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint
 
 	uint8_t *payloadPtr = ((makernetPacketHeader_t *)buffer)->payload;
 
-	for( int i = 0 ; i < size ; i++ ) {
+	for ( int i = 0 ; i < size ; i++ ) {
 		payloadPtr[i] = payload[i];
 		crc = crc8_ccitt_update( crc, payload[i] );
 	}
 
 	payloadPtr[size] = crc;
 
-	datalink->sendFrame( buffer, sizeof( makernetPacketHeader_t ) + size + 1 );	
+	datalink->sendFrame( buffer, sizeof( makernetPacketHeader_t ) + size + 1 );
 }
 
 int Network::sendPacket( uint8_t destination, uint8_t port, uint8_t size, uint8_t *payload)
@@ -465,7 +476,7 @@ void UnixSlave::loop()
 
 int main(void)
 {
-		Network net;
+	Network net;
 
 	uint8_t x[] = { 1, 2, 3, 4, 5 };
 
