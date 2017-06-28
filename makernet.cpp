@@ -1,6 +1,9 @@
 // Makernet revised core library rebuilt with improved hygene and ability to
 // be tested and debugged on OSX
 
+//  c++ -DMASTER makernet.cpp -o master
+//  c++ -DSLAVE makernet.cpp -o slave
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +12,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-
+#include <unistd.h>
 
 // util.h
 
@@ -168,13 +171,11 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 	if ((t = recv(sock, receiveBuffer, MAX_MAKERNET_FRAME_LENGTH, 0)) > 0) {
 		receiveBuffer[t] = '\0';
 
-	DPR( ">>>> (" );
-	DPR( t );
-	DPR( ") ");
-	hexPrint( receiveBuffer, t );
-	DLN();
-
-
+		DPR( ">>>> (" );
+		DPR( t );
+		DPR( ") ");
+		hexPrint( receiveBuffer, t );
+		DLN();
 		// printf("echo> %s", receiveBuffer);
 	} else {
 		if (t < 0) perror("recv");
@@ -185,8 +186,84 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 }
 
 
+class UnixSlave : public Datalink {
+public:
+	virtual void initialize();
+	virtual int sendFrame( uint8_t *inBuffer, uint8_t len );
+	void loop();
+private:
+	struct sockaddr_un local, remote;
+	int sock;
+	uint8_t receiveBuffer[MAX_MAKERNET_FRAME_LENGTH];
+
+};
 
 
+void UnixSlave::initialize()
+{
+
+	int len;
+
+	char str[100];
+
+	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+		perror("socket");
+		exit(1);
+	}
+
+	local.sun_family = AF_UNIX;
+	strcpy(local.sun_path, SOCK_PATH);
+	unlink(local.sun_path);
+	len = strlen(local.sun_path) + sizeof(local.sun_family);
+	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
+		perror("bind");
+		exit(1);
+	}
+
+	if (listen(sock, 5) == -1) {
+		perror("listen");
+		exit(1);
+	}
+}
+
+int UnixSlave::sendFrame( uint8_t *inBuffer, uint8_t len )
+{
+
+}
+
+void UnixSlave::loop()
+{
+	int t, s2;
+	int done, n;
+	printf("Waiting for a connection...\n");
+	t = sizeof(remote);
+	if ((s2 = accept(sock, (struct sockaddr *)&remote, (socklen_t *)&t)) == -1) {
+		perror("accept");
+		exit(1);
+	}
+
+	printf("Connected.\n");
+
+	done = 0;
+	do {
+		n = recv(s2, receiveBuffer, MAX_MAKERNET_FRAME_LENGTH, 0);
+		if (n <= 0) {
+			if (n < 0) perror("recv");
+			done = 1;
+		}
+
+		if (!done)
+			if (send(s2, receiveBuffer, n, 0) < 0) {
+				perror("send");
+				done = 1;
+			}
+	} while (!done);
+
+	close(s2);
+}
+
+
+#ifdef MASTER
 
 int main(void)
 {
@@ -198,3 +275,17 @@ int main(void)
 
 }
 
+#else
+
+int main(void)
+{
+	UnixSlave us;
+	us.initialize();
+
+	while (1)
+		us.loop();
+
+
+}
+
+#endif
