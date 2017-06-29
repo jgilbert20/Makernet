@@ -139,7 +139,7 @@ uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 typedef struct {
 	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
 	uint8_t src;  // The source address
-	uint8_t port; // The destination port
+	uint8_t destPort; // The destination port
 	uint8_t size; // The size of the payload in bytes
 	uint8_t payload[]; // The actual payload
 } Packet;
@@ -169,23 +169,24 @@ typedef struct {
 // and read, or it is passed to the network. This allows reuse of the ~255
 // bytes of buffer space.
 
-class ServiceBase {
+class Service {
 
 public:
-	virtual void handlePacket( Packet *p ) = 0;
-	virtual void pollPacket( Packet *p ) = 0;
+	virtual void initialize() = 0;
+	virtual int handlePacket( Packet *p ) = 0;
+	virtual int pollPacket( Packet *p ) = 0;
+	int port;
 
 };
 
 
-namespace Service {
 
-class DeviceControl : public ServiceBase {
-	virtual void handlePacket( Packet *p );
-	virtual void pollPacket( Packet *p );
+class DeviceControlService : public Service {
+	virtual void initialize();
+	virtual int handlePacket( Packet *p );
+	virtual int pollPacket( Packet *p );
 };
 
-};
 
 
 
@@ -214,6 +215,8 @@ class DeviceControl : public ServiceBase {
 //
 // 0 is reserved as an endpoint for network control functions.
 
+#define NUM_PORTS 16
+
 class Datalink;
 
 class Network {
@@ -225,12 +228,14 @@ public:
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
 	Datalink *datalink;
 	void initialize();
+	int registerService( int port, Service *s );
 
 	int address;
+	Service *services[NUM_PORTS];
 
 private:
 	int sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
-	int routeFrame( uint8_t *buffer, uint8_t len  );
+	int routePacket( Packet *p );
 };
 
 
@@ -294,21 +299,42 @@ _Makernet Makernet;
 void Network::initialize()
 {
 
-	return; 
+	return;
 }
 
 
 
-// Called when we have a valid packet that is meant for us
+// Called when we have a valid packet that is meant for us.
+// From this point on in the stack, we can assume everything
+// about the packet checks out.
 
-int Network::routeFrame( uint8_t *buffer, uint8_t len  )
+int Network::routePacket( Packet *p  )
 {
+	if ( p == NULL )
+		return -200;
 
+	Service *service = services[p->destPort];
+	if ( service == NULL )
+		return -201;
 
+	return service->handlePacket( p );
 }
 
+// Registers and initializes service
 
-// Called when a network interface identifies an inbound frame
+int Network::registerService( int port, Service *s )
+{
+	if ( port >= NUM_PORTS or port < 0 )
+		return -1;
+	s->port = port;
+	services[port] = s;
+	s->initialize();
+	return 1;
+}
+
+// Called when a network interface identifies an inbound frame Purpose is to
+// boundary check everything and ensure it is a valid packet so that no
+// further data validation is needed upstream.
 
 void Network::handleFrame(uint8_t *buffer, uint8_t len )
 {
@@ -320,10 +346,18 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 		return;
 	}
 
-	DPF( "%%%%%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
-	     mp->dest, mp->src, mp->port, mp->size );
+	if ( mp->destPort < 0 or mp->destPort >= NUM_PORTS ) {
+		DPR( "Dropping invalid packet port.");
+		return;
+	}
 
-	DPR( sizeof(Packet) );
+	if ( mp->size < 0 or mp->size >= MAX_MAKERNET_FRAME_LENGTH - 1 - sizeof(Packet) ) {
+		DPR( "Dropping invalid sized packet.");
+		return;
+	}
+
+	DPF( "%%%%%%%% Inbound packet dest=[%i] src=[%i] dPort=[%i] size=[%i]\n",
+	     mp->dest, mp->src, mp->destPort, mp->size );
 	DLN();
 
 	// Verify checksum
@@ -335,8 +369,12 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 		return;
 	}
 
-	if ( routeFrame( buffer, len ) < 0 ) {
-		DPR( "Frame failed to route" );
+	int s = routePacket( mp );
+	if ( s < 0 ) {
+		DPR( "Frame failed to route, err=" );
+		DPR( s );
+		DLN();
+
 	}
 }
 
@@ -352,7 +390,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 // (3+) [payload 0...size]
 // (n)  [CRC]
 
-int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload)
+int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t destPort, uint8_t size, uint8_t *payload)
 {
 	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
 		return -100;
@@ -361,7 +399,7 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint
 
 	((Packet *)buffer)->dest = destination;
 	((Packet *)buffer)->src = src;
-	((Packet *)buffer)->port = port;
+	((Packet *)buffer)->destPort = destPort;
 	((Packet *)buffer)->size = size;
 
 	int crc = calculateCRC( 0, buffer, sizeof( Packet ) );
@@ -378,14 +416,14 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint
 	datalink->sendFrame( buffer, sizeof( Packet ) + size + 1 );
 }
 
-int Network::sendPacket( uint8_t destination, uint8_t port, uint8_t size, uint8_t *payload)
+int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, uint8_t *payload)
 {
 	if ( address == ADDR_UNASSIGNED ) {
 		DPR( "ASSERT: Address not configured");
 		return -1;
 	}
 
-	return sendRawPacket( destination, address, port, size, payload );
+	return sendRawPacket( destination, address, destPort, size, payload );
 
 }
 
