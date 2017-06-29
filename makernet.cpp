@@ -130,6 +130,65 @@ uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 }
 
 
+// The makernet packet header is a common object used to "address" a packet.
+// For maximimum effciency and economy of processor time and memory, this
+// header is the direct byte order and contents of the first N bytes of all
+// makernet messages. Note that the entire makernet message is actually
+// sizeof( Packet ) + payload + 1 bytes for CRC
+
+typedef struct {
+	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
+	uint8_t src;  // The source address
+	uint8_t port; // The destination port
+	uint8_t size; // The size of the payload in bytes
+	uint8_t payload[]; // The actual payload
+} Packet;
+
+// A "service" is a generic endpoint that can be a source, sink or both for
+// packets. The makernet framework will pass handlePacket() to its registered
+// services. Inside a handlePacket control flow, the handler is free to
+// populate a response packet which will be immediately transmitted when the
+// call is over.  It may also wait for the next polling event.
+//
+// Services are provided periodic opportunities to generate new packets. If
+// datalink requires a master/slave architecture and the device is the slave,
+// than the services are polled in order of port number to generate packets
+// via pollPacket(). This function offers a pre-allocated buffer and pointer
+// to the address block. In cases of being a master, or in cases of a peer-to-
+// peer datalink (such as RS485 or RFM69W radio), the polling occurs during
+// system loop(). This architecture allows a Service to be largely ignorant if
+// it is being used in a master/slave or peer-to-peer network.
+//
+// Of course, it is always possible simply to get a handle to the Network
+// object and spontaneously generate a new packet at any time but the
+// mechanisms above will offer a slight efficiency gain by re-using the low-
+// level buffers, thus avoiding copying.
+//
+// Note that in the makernet low-level architecture, packets are never queued.
+// Therefore, as soon as a packet is formed, it is either passed to a caller
+// and read, or it is passed to the network. This allows reuse of the ~255
+// bytes of buffer space.
+
+class ServiceBase {
+
+public:
+	virtual void handlePacket( Packet *p ) = 0;
+	virtual void pollPacket( Packet *p ) = 0;
+
+};
+
+
+namespace Service {
+
+class DeviceControl : public ServiceBase {
+	virtual void handlePacket( Packet *p );
+	virtual void pollPacket( Packet *p );
+};
+
+};
+
+
+
 
 
 // The Network object implements a layer of the "network" - contiguous set of
@@ -165,12 +224,13 @@ public:
 	// A universal way to send a packet
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
 	Datalink *datalink;
+	void initialize();
 
 	int address;
 
 private:
 	int sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
-
+	int routeFrame( uint8_t *buffer, uint8_t len  );
 };
 
 
@@ -203,37 +263,81 @@ public:
 	Network *network;
 	uint8_t address;
 
+	// Service *services[16];
+
 };
 
 
-typedef struct {
-	uint8_t dest;
-	uint8_t src;
-	uint8_t port;
-	uint8_t size;
-	uint8_t payload[];
-} makernetPacketHeader_t;
+// This is a core singleton for the entire application. Right now, as an
+// optimization, the singleton is used inside the Makernet framework itself
+// so that each object is not forced to carry around pointers to the
+// framework objects like Network and Datalink.
 
+class _Makernet {
+	Network network;
+	void initialize();
+};
+
+
+
+void _Makernet::initialize()
+{
+	network.initialize();
+}
+
+// Singleton object
+_Makernet Makernet;
+
+
+// Called when the framework is initialized
+
+void Network::initialize()
+{
+
+	return; 
+}
+
+
+
+// Called when we have a valid packet that is meant for us
+
+int Network::routeFrame( uint8_t *buffer, uint8_t len  )
+{
+
+
+}
+
+
+// Called when a network interface identifies an inbound frame
 
 void Network::handleFrame(uint8_t *buffer, uint8_t len )
 {
 	if ( len <= 0 or buffer == NULL ) return;
-	makernetPacketHeader_t *mp = (makernetPacketHeader_t *)buffer;
+	Packet *mp = (Packet *)buffer;
 
-	// snprintf( debugBuffer, 255,
-	//           "%%%%%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
-	//           mp->dest, mp->src, mp->port, mp->size );
+	if ( mp->dest != ADDR_BROADCAST or (address != ADDR_UNASSIGNED and address != mp->dest )) {
+		DPR( "Dropping packet not for us");
+		return;
+	}
+
 	DPF( "%%%%%%%% Inbound packet dest=[%i] src=[%i] port=[%i] size=[%i]\n",
 	     mp->dest, mp->src, mp->port, mp->size );
 
-	DPR( sizeof(makernetPacketHeader_t) );
+	DPR( sizeof(Packet) );
 	DLN();
 
 	// Verify checksum
 	uint8_t calculatedCRC = calculateCRC(0, buffer, len - 1 );
 	uint8_t presentedCRC = buffer[len - 1];
 
-	DPF( "%%%%%%%% CRC check: (%x) vs (%x)\n", calculatedCRC, presentedCRC );
+	if ( calculatedCRC != presentedCRC ) {
+		DPF( "%%%%%%%% CRC check failed: (%x) vs (%x), frame dropped\n", calculatedCRC, presentedCRC );
+		return;
+	}
+
+	if ( routeFrame( buffer, len ) < 0 ) {
+		DPR( "Frame failed to route" );
+	}
 }
 
 
@@ -255,14 +359,14 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint
 
 	uint8_t *buffer = datalink->frameBuffer;
 
-	((makernetPacketHeader_t *)buffer)->dest = destination;
-	((makernetPacketHeader_t *)buffer)->src = src;
-	((makernetPacketHeader_t *)buffer)->port = port;
-	((makernetPacketHeader_t *)buffer)->size = size;
+	((Packet *)buffer)->dest = destination;
+	((Packet *)buffer)->src = src;
+	((Packet *)buffer)->port = port;
+	((Packet *)buffer)->size = size;
 
-	int crc = calculateCRC( 0, buffer, sizeof( makernetPacketHeader_t ) );
+	int crc = calculateCRC( 0, buffer, sizeof( Packet ) );
 
-	uint8_t *payloadPtr = ((makernetPacketHeader_t *)buffer)->payload;
+	uint8_t *payloadPtr = ((Packet *)buffer)->payload;
 
 	for ( int i = 0 ; i < size ; i++ ) {
 		payloadPtr[i] = payload[i];
@@ -271,7 +375,7 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint
 
 	payloadPtr[size] = crc;
 
-	datalink->sendFrame( buffer, sizeof( makernetPacketHeader_t ) + size + 1 );
+	datalink->sendFrame( buffer, sizeof( Packet ) + size + 1 );
 }
 
 int Network::sendPacket( uint8_t destination, uint8_t port, uint8_t size, uint8_t *payload)
