@@ -136,13 +136,21 @@ uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 // makernet messages. Note that the entire makernet message is actually
 // sizeof( Packet ) + payload + 1 bytes for CRC
 
-typedef struct {
+struct Packet {
+	void clear() { dest=0;src=0;destPort=0;size=0; };
 	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
 	uint8_t src;  // The source address
 	uint8_t destPort; // The destination port
 	uint8_t size; // The size of the payload in bytes
 	uint8_t payload[]; // The actual payload
-} Packet;
+};
+
+
+// struct DeviceControlMessage : Packet {
+
+
+// };
+
 
 // A "service" is a generic endpoint that can be a source, sink or both for
 // packets. The makernet framework will pass handlePacket() to its registered
@@ -172,8 +180,11 @@ typedef struct {
 class Service {
 
 public:
+	// Called when we are registered, do run-time setup here
 	virtual void initialize() = 0;
+	// Called when a packet is routed to us
 	virtual int handlePacket( Packet *p ) = 0;
+	// Called with a scatch packet template 
 	virtual int pollPacket( Packet *p ) = 0;
 	int port;
 
@@ -188,7 +199,25 @@ class DeviceControlService : public Service {
 };
 
 
+void DeviceControlService::initialize()
+{
 
+}
+
+#define DCS_REQUEST_ADDRESS 0x50
+#define DCS_ASSIGN_ADDRESS 0x51
+#define DCS_QUERY
+
+
+int DeviceControlService::handlePacket(Packet *p)
+{
+
+}
+
+int DeviceControlService::pollPacket(Packet *p)
+{
+
+}
 
 
 
@@ -616,9 +645,17 @@ void UnixSlave::loop()
 
 #ifdef MASTER
 
+#include <sys/time.h>
+
 int main(void)
 {
 	Network net;
+
+
+
+struct timeval stTimeVal;
+  gettimeofday(&stTimeVal, NULL);
+  long long start = stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
 
 	uint8_t x[] = { 1, 2, 3, 4, 5 };
 
@@ -630,8 +667,14 @@ int main(void)
 	// um.sendFrame( x , 5 );
 
 	net.address = 0x55;
-	net.sendPacket( 0x22, 0x15, 5, x );
+//	net.sendPacket( 0x22, 0x15, 5, x );
+  gettimeofday(&stTimeVal, NULL);
+  long long end = stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
 
+
+  
+  printf( "took %lld\n", end - start);
+  
 
 }
 
