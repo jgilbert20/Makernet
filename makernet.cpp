@@ -325,6 +325,10 @@ public:
 	int sendPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
 	int	sendPacket( Packet *p );
+	// Takes a packet populated by upper layers and finalizes the entire
+	// buffer to be a frame
+	int finalizePacketToFrame( Packet *p );
+
 	int sendNextPacket();
 
 	Datalink *datalink;
@@ -408,7 +412,8 @@ void Network::useDatalink( Datalink *dl)
 	datalink = dl;
 }
 
-// Internal handler
+// Internal handler that polls all services for their next packet and
+// generates exactly one packet onto the wire.
 
 int Network::sendNextPacket()
 {
@@ -420,12 +425,13 @@ int Network::sendNextPacket()
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL ) {
-			if ( s->pollPacket(p) ){
+			if ( s->pollPacket(p) ) {
 				int r = sendPacket( p );
-				if( r <= 0 ) {
+				if ( r < 0 ) {
 					DPR( "sendPacket had error:");
 					DLN( r );
 				}
+				return 1;
 			}
 		}
 	}
@@ -540,11 +546,19 @@ int Network::pollFrame( uint8_t *buffer, uint8_t len )
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL ) {
-			int retValue = s->pollPacket(p);
-			if ( retValue > 0 )
-				return 1;
-			else if ( retValue < 0) {
-				DPR( "pollPacket returned negative??");
+			int pollRetValue = s->pollPacket(p);
+			if ( pollRetValue > 0 ) {
+				int finalRetValue = finalizePacketToFrame( p );
+				if ( finalRetValue > 0 )
+					return 1;
+				else {
+					DPR( "Return packet failed to finalize: err");
+					DPR( finalRetValue );
+					DLN();
+				}
+			}
+			else if ( pollRetValue < 0) {
+				DPR( "pollPacket returned negative?? Something wrong");
 				DLN();
 			}
 		}
@@ -589,7 +603,7 @@ int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uin
 // Handles all of the mojo needed to make a packet able to sit on the wire
 // such as adding a checksum and range checking the packet. Returns 1 if the packet is OK, otherwise negative.
 
-int finalizePacketToFrame( Packet *p )
+int Network::finalizePacketToFrame( Packet *p )
 {
 	if ( p == NULL )
 		return -3000;
@@ -621,8 +635,8 @@ int finalizePacketToFrame( Packet *p )
 int Network::sendPacket( Packet *p )
 {
 	int r = finalizePacketToFrame( p );
-	if( r <= 0 )
-		return r; 
+	if ( r <= 0 )
+		return r;
 
 	int size = p->size;
 
@@ -802,7 +816,10 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 		DPR( ") ");
 		hexPrint( frameBuffer, t );
 		DLN();
-		// printf("echo> %s", receiveBuffer);
+
+		if ( t > 0 )
+			Makernet.network.handleFrame( frameBuffer, t );
+
 	} else {
 		if (t < 0) perror("recv");
 		else printf("Server closed connection\n");
@@ -889,6 +906,11 @@ void UnixSlave::loop()
 		updateMicrosecondCounter();
 
 		Makernet.network.handleFrame( frameBuffer, n );
+
+
+		for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ )
+			frameBuffer[i] = 0;
+
 		Makernet.network.pollFrame( frameBuffer, n );
 
 		if (!done)
