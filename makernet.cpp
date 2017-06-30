@@ -224,7 +224,7 @@ uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 // sizeof( Packet ) + payload + 1 bytes for CRC
 
 struct Packet {
-	void clear() { dest = 0; src = 0; destPort = 0; size = 0; };
+	void clear() { dest = ADDR_UNASSIGNED; src = 0; destPort = 0; size = 0; };
 	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
 	uint8_t src;  // The source address
 	uint8_t destPort; // The destination port
@@ -271,7 +271,7 @@ public:
 	virtual void initialize() = 0;
 	// Called when a packet is routed to us
 	virtual int handlePacket( Packet *p ) = 0;
-	// Called with a scatch packet template
+	// Called with a scatch packet template, return 1 if a packet populated, 0 otherwise
 	virtual int pollPacket( Packet *p ) = 0;
 	virtual void loop() = 0;
 	int port;
@@ -310,21 +310,27 @@ class Datalink;
 class Network {
 
 public:
+	Network();
 	// Called by the datalink layer on receipt of a new frame
 	void handleFrame( uint8_t *buffer, uint8_t len );
 	// A universal way to send a packet
+	int sendPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
+	int	sendPacket( Packet *p );
+	int sendNextPacket();
+
 	Datalink *datalink;
 	void initialize();
 	void useDatalink( Datalink *dl);
 	int registerService( int port, Service *s );
 	void loop();
 
+	enum { master, slave, peer } role;
 	int address;
 	Service *services[NUM_PORTS];
 
 private:
-	int sendRawPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
+
 	int routePacket( Packet *p );
 };
 
@@ -374,7 +380,11 @@ public:
 	void initialize();
 };
 
-
+Network::Network() {
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+	}
+}
 
 void _Makernet::initialize()
 {
@@ -399,14 +409,41 @@ void Network::useDatalink( Datalink *dl)
 	datalink = dl;
 }
 
+// Internal handler
+
+int Network::sendNextPacket()
+{
+	Packet *p = (Packet *)datalink->frameBuffer;
+	p->clear();
+	p->src = address;
+
+	// Find the next service that has a packet to send
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+		if ( s != NULL ) {
+			if ( s->pollPacket(p) )
+				sendPacket( p );
+		}
+	}
+	return 0;
+}
+
+
+
+
+
 void Network::loop()
 {
-	DLN( "Here ");
+	DLN( "--- Network Loop ---");
+
+	// Give all services a loop() opportunity
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL )
 			s->loop();
 	}
+
+	sendNextPacket();
 
 
 }
@@ -449,13 +486,13 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	if ( len <= 0 or buffer == NULL ) return;
 	Packet *mp = (Packet *)buffer;
 
-	if ( mp->dest != ADDR_BROADCAST or (address != ADDR_UNASSIGNED and address != mp->dest )) {
-		DPR( "Dropping packet not for us");
+	if (!((mp->dest == ADDR_BROADCAST) or (address == ADDR_UNASSIGNED) or (address == mp->dest ))) {
+		DLN( "Dropping packet not for us");
 		return;
 	}
 
 	if ( mp->destPort < 0 or mp->destPort >= NUM_PORTS ) {
-		DPR( "Dropping invalid packet port.");
+		DLN( "Dropping invalid packet port.");
 		return;
 	}
 
@@ -488,7 +525,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 
 
-// sendRawPacket(..) is the core function that assembles a packet into a
+// sendPacket(..) is the core function that assembles a packet into a
 // frame. The resulting frame looks like this:
 //
 // (0)  [dst address]
@@ -498,7 +535,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 // (3+) [payload 0...size]
 // (n)  [CRC]
 
-int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t destPort, uint8_t size, uint8_t *payload)
+int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uint8_t size, uint8_t *payload )
 {
 	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
 		return -100;
@@ -510,21 +547,36 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t destPort, 
 	((Packet *)buffer)->destPort = destPort;
 	((Packet *)buffer)->size = size;
 
-	int crc = calculateCRC( 0, buffer, sizeof( Packet ) );
-
 	uint8_t *payloadPtr = ((Packet *)buffer)->payload;
 
 	for ( int i = 0 ; i < size ; i++ ) {
 		payloadPtr[i] = payload[i];
-		crc = crc8_ccitt_update( crc, payload[i] );
+	}
+
+	return sendPacket( (Packet *)buffer );
+}
+
+
+int Network::sendPacket( Packet *p )
+{
+	int size = p->size;
+	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
+		return -100;
+
+	// Crc the header
+	int crc = calculateCRC( 0, (uint8_t *)p, sizeof( Packet ) );
+
+	uint8_t *payloadPtr = p->payload;
+
+	for ( int i = 0 ; i < size ; i++ ) {
+		crc = crc8_ccitt_update( crc, payloadPtr[i] );
 	}
 
 	payloadPtr[size] = crc;
 
-	return datalink->sendFrame( buffer, sizeof( Packet ) + size + 1 );
-
-
+	return datalink->sendFrame( (uint8_t *)p, sizeof( Packet ) + size + 1 );
 }
+
 
 int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, uint8_t *payload)
 {
@@ -533,7 +585,7 @@ int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, ui
 		return -1;
 	}
 
-	return sendRawPacket( destination, address, destPort, size, payload );
+	return sendPacket( destination, address, destPort, size, payload );
 
 }
 
@@ -550,7 +602,7 @@ public:
 	virtual int pollPacket( Packet *p );
 	virtual void loop();
 
-	enum { master, slave, peer } role;
+
 
 private:
 
@@ -566,7 +618,7 @@ void DeviceControlService::initialize()
 
 #define DCS_REQUEST_ADDRESS 0x50
 #define DCS_ASSIGN_ADDRESS 0x51
-#define DCS_QUERY
+#define DCS_GENERAL_POLL 0x55
 
 
 int DeviceControlService::handlePacket(Packet *p)
@@ -576,20 +628,27 @@ int DeviceControlService::handlePacket(Packet *p)
 
 int DeviceControlService::pollPacket(Packet *p)
 {
-	return -1000;
+
+	if ( Makernet.network.role == Network::master )
+		if ( pollingTimer.hasPassed() )
+		{
+			DLN( "Time for a polling packet!");
+			p->dest = ADDR_BROADCAST;
+			p->destPort = 0;
+			p->size = 1;
+			p->payload[0] = DCS_GENERAL_POLL;
+			return 1;
+		}
+
+
+
+	return 0;
 }
 
 void DeviceControlService::loop()
 {
 // DLN( "Time for a polling packet!");
 
-	if ( role == master )
-		if ( pollingTimer.hasPassed() )
-		{
-			DLN( "Time for a polling packet!");
-			Makernet.network.sendRawPacket
-
-		}
 
 
 }
@@ -787,7 +846,7 @@ void UnixSlave::loop()
 
 
 
-#define MASTER
+//#define MASTER
 
 
 
@@ -816,7 +875,7 @@ int handleCommand( char *b, int s )
 int main(void)
 {
 	DeviceControlService dcs;
-	dcs.role = DeviceControlService::master;
+	Makernet.network.role = Network::master;
 	UnixMaster um;
 
 	Makernet.network.useDatalink( &um );
