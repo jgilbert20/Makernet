@@ -23,7 +23,7 @@ long long MICROSECOND_COUNTER = 0;
 
 inline uint32_t millis()
 {
-	return MICROSECOND_COUNTER / 1000; 
+	return MICROSECOND_COUNTER / 1000;
 }
 
 #include <sys/time.h>
@@ -267,6 +267,7 @@ public:
 	virtual int handlePacket( Packet *p ) = 0;
 	// Called with a scatch packet template
 	virtual int pollPacket( Packet *p ) = 0;
+	virtual void loop() = 0;
 	int port;
 
 };
@@ -274,9 +275,18 @@ public:
 
 
 class DeviceControlService : public Service {
+
+public:
 	virtual void initialize();
 	virtual int handlePacket( Packet *p );
 	virtual int pollPacket( Packet *p );
+	virtual void loop();
+
+	enum { controller, master, peer } role;
+
+private:
+
+
 };
 
 
@@ -292,13 +302,19 @@ void DeviceControlService::initialize()
 
 int DeviceControlService::handlePacket(Packet *p)
 {
-
+	return -1000;
 }
 
 int DeviceControlService::pollPacket(Packet *p)
 {
+	return -1000;
+}
+
+void DeviceControlService::loop()
+{
 
 }
+
 
 
 
@@ -339,6 +355,8 @@ public:
 	Datalink *datalink;
 	void initialize();
 	int registerService( int port, Service *s );
+	void loop();
+
 
 	int address;
 	Service *services[NUM_PORTS];
@@ -370,10 +388,10 @@ public:
 
 
 	// Register a callback when new frames arrive
-// 	void onReceive( frameReceiveCallback_t t );
+	// 	void onReceive( frameReceiveCallback_t t );
 
-// private:
-// 	frameReceiveCallback_t frameReceiveCallback;
+	// private:
+	// 	frameReceiveCallback_t frameReceiveCallback;
 
 	Network *network;
 	uint8_t address;
@@ -408,10 +426,23 @@ _Makernet Makernet;
 
 void Network::initialize()
 {
+	for ( int i = 0 ; i < NUM_PORTS ; i++ )
+		services[i] = NULL;
 
 	return;
 }
 
+
+void Network::loop()
+{
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+		if ( s != NULL )
+			s->loop();
+	}
+
+
+}
 
 
 // Called when we have a valid packet that is meant for us.
@@ -523,7 +554,9 @@ int Network::sendRawPacket( uint8_t destination, uint8_t src, uint8_t destPort, 
 
 	payloadPtr[size] = crc;
 
-	datalink->sendFrame( buffer, sizeof( Packet ) + size + 1 );
+	return datalink->sendFrame( buffer, sizeof( Packet ) + size + 1 );
+
+
 }
 
 int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, uint8_t *payload)
@@ -558,7 +591,7 @@ private:
 };
 
 
-#define SOCK_PATH "echo_socket"
+#define SOCK_PATH "/tmp/echo_socket"
 
 
 void UnixMaster::initialize()
@@ -618,6 +651,8 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 		exit(1);
 	}
 
+
+	return 0;
 }
 
 
@@ -663,7 +698,7 @@ void UnixSlave::initialize()
 
 int UnixSlave::sendFrame( uint8_t *inBuffer, uint8_t len )
 {
-
+	return -1000;
 }
 
 void UnixSlave::loop()
@@ -718,7 +753,7 @@ void UnixSlave::loop()
 
 
 
-
+// #define MASTER
 
 
 
@@ -747,7 +782,7 @@ int handleCommand( char *b, int s )
 int main(void)
 {
 	Network net;
-
+	net.initialize();
 
 	UnixMaster um;
 	um.initialize();
@@ -765,7 +800,7 @@ int main(void)
 	char buff[1000];
 	char *bpos = buff;
 
-startMicrosecondCounter();
+	startMicrosecondCounter();
 
 	while (1) {
 
@@ -782,7 +817,7 @@ startMicrosecondCounter();
 		}
 
 
-		// net.loop();
+		net.loop();
 
 		// long long end = getMicrosecondTime();
 
@@ -821,3 +856,4 @@ int main(void)
 }
 
 #endif
+
