@@ -320,7 +320,6 @@ public:
 	int registerService( int port, Service *s );
 	void loop();
 
-
 	int address;
 	Service *services[NUM_PORTS];
 
@@ -390,9 +389,6 @@ _Makernet Makernet;
 
 void Network::initialize()
 {
-	for ( int i = 0 ; i < NUM_PORTS ; i++ )
-		services[i] = NULL;
-
 	datalink->initialize();
 
 	return;
@@ -405,6 +401,7 @@ void Network::useDatalink( Datalink *dl)
 
 void Network::loop()
 {
+	DLN( "Here ");
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL )
@@ -584,11 +581,13 @@ int DeviceControlService::pollPacket(Packet *p)
 
 void DeviceControlService::loop()
 {
+// DLN( "Time for a polling packet!");
+
 	if ( role == master )
 		if ( pollingTimer.hasPassed() )
 		{
 			DLN( "Time for a polling packet!");
-			Makernet.network;
+			Makernet.network.sendRawPacket
 
 		}
 
@@ -788,7 +787,7 @@ void UnixSlave::loop()
 
 
 
-// #define MASTER
+#define MASTER
 
 
 
@@ -817,6 +816,7 @@ int handleCommand( char *b, int s )
 int main(void)
 {
 	DeviceControlService dcs;
+	dcs.role = DeviceControlService::master;
 	UnixMaster um;
 
 	Makernet.network.useDatalink( &um );
