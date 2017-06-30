@@ -176,6 +176,11 @@ void printDebugln( )
 	printf( "\n" );
 }
 
+void printDebugln( int i )
+{
+	printf( "%d\n", i );
+}
+
 #endif
 
 void hexPrint( uint8_t *buffer, int size )
@@ -313,6 +318,9 @@ public:
 	Network();
 	// Called by the datalink layer on receipt of a new frame
 	void handleFrame( uint8_t *buffer, uint8_t len );
+	// Called when the datalink layer has been cleared to send a frame. Return
+	// positive values if a frame has been populated, zero if not
+	int pollFrame( uint8_t *buffer, uint8_t len );
 	// A universal way to send a packet
 	int sendPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
@@ -353,15 +361,6 @@ public:
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
 
 	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];
-
-
-	// Register a callback when new frames arrive
-	// 	void onReceive( frameReceiveCallback_t t );
-
-	// private:
-	// 	frameReceiveCallback_t frameReceiveCallback;
-
-	Network *network;
 	uint8_t address;
 
 	// Service *services[16];
@@ -421,8 +420,13 @@ int Network::sendNextPacket()
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL ) {
-			if ( s->pollPacket(p) )
-				sendPacket( p );
+			if ( s->pollPacket(p) ){
+				int r = sendPacket( p );
+				if( r <= 0 ) {
+					DPR( "sendPacket had error:");
+					DLN( r );
+				}
+			}
 		}
 	}
 	return 0;
@@ -523,6 +527,31 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	}
 }
 
+// pollFrame is typically invoked by the datalink layer when a network
+// condition allows a frame to be transmitted (e.g. link is pending),
+// typically in cases where the datalink is acting as a slave and the master
+// has given it permission to send.
+
+int Network::pollFrame( uint8_t *buffer, uint8_t len )
+{
+	Packet *p = (Packet *)buffer;
+
+	// Find the next service that has a packet to send
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+		if ( s != NULL ) {
+			int retValue = s->pollPacket(p);
+			if ( retValue > 0 )
+				return 1;
+			else if ( retValue < 0) {
+				DPR( "pollPacket returned negative??");
+				DLN();
+			}
+		}
+	}
+
+	return 0;
+}
 
 
 // sendPacket(..) is the core function that assembles a packet into a
@@ -557,11 +586,21 @@ int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uin
 }
 
 
-int Network::sendPacket( Packet *p )
+// Handles all of the mojo needed to make a packet able to sit on the wire
+// such as adding a checksum and range checking the packet. Returns 1 if the packet is OK, otherwise negative.
+
+int finalizePacketToFrame( Packet *p )
 {
+	if ( p == NULL )
+		return -3000;
+
 	int size = p->size;
+
 	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
-		return -100;
+		return -3001;
+
+	if ( p->dest == ADDR_UNASSIGNED )
+		return -3002;
 
 	// Crc the header
 	int crc = calculateCRC( 0, (uint8_t *)p, sizeof( Packet ) );
@@ -573,6 +612,19 @@ int Network::sendPacket( Packet *p )
 	}
 
 	payloadPtr[size] = crc;
+
+	return 1;
+}
+
+// returns 1 on successful send, otherwise negative
+
+int Network::sendPacket( Packet *p )
+{
+	int r = finalizePacketToFrame( p );
+	if( r <= 0 )
+		return r; 
+
+	int size = p->size;
 
 	return datalink->sendFrame( (uint8_t *)p, sizeof( Packet ) + size + 1 );
 }
@@ -623,11 +675,14 @@ void DeviceControlService::initialize()
 
 int DeviceControlService::handlePacket(Packet *p)
 {
-	return -1000;
+	DLN( "Handle packet default!!");
+	return 0;
 }
 
 int DeviceControlService::pollPacket(Packet *p)
 {
+	DLN( "Within pollPacket at DCS");
+
 
 	if ( Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
@@ -640,6 +695,16 @@ int DeviceControlService::pollPacket(Packet *p)
 			return 1;
 		}
 
+	if ( Makernet.network.role == Network::slave && Makernet.network.address == ADDR_UNASSIGNED )
+		if ( pollingTimer.hasPassed() )
+		{
+			DLN( "Time for a request packet!");
+			p->dest = ADDR_BROADCAST;
+			p->destPort = 0;
+			p->size = 1;
+			p->payload[0] = DCS_REQUEST_ADDRESS;
+			return 1;
+		}
 
 
 	return 0;
@@ -821,7 +886,10 @@ void UnixSlave::loop()
 		hexPrint( frameBuffer, n );
 		DLN();
 
-		network->handleFrame( frameBuffer, n );
+		updateMicrosecondCounter();
+
+		Makernet.network.handleFrame( frameBuffer, n );
+		Makernet.network.pollFrame( frameBuffer, n );
 
 		if (!done)
 			if (send(s2, frameBuffer, n, 0) < 0) {
@@ -949,14 +1017,16 @@ int main(void)
 
 int main(void)
 {
-	Network net;
-
-
-
+	DeviceControlService dcs;
+	Makernet.network.role = Network::slave;
 	UnixSlave us;
-	us.initialize();
-	net.datalink = &us;
-	us.network = &net;
+
+	Makernet.network.useDatalink( &us );
+	Makernet.network.registerService(0, &dcs);
+
+	Makernet.initialize();
+
+	startMicrosecondCounter();
 
 	while (1)
 		us.loop();
