@@ -708,7 +708,7 @@ int main(void)
 		}
 
 
-		net.loop();
+		//net.loop();
 
 		long long end = getMicrosecondTime();
 
