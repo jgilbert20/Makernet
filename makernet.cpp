@@ -14,6 +14,87 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+
+
+
+
+long long MICROSECOND_START = 0;
+long long MICROSECOND_COUNTER = 0;
+
+inline uint32_t millis()
+{
+	return MICROSECOND_COUNTER / 1000; 
+}
+
+#include <sys/time.h>
+#include <poll.h>
+
+struct timeval stTimeVal;
+
+inline long long getMicrosecondTime()
+{
+	gettimeofday(&stTimeVal, NULL);
+	return stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
+}
+
+void startMicrosecondCounter()
+{
+	MICROSECOND_START = getMicrosecondTime();
+	MICROSECOND_COUNTER = 0;
+}
+
+void updateMicrosecondCounter()
+{
+	MICROSECOND_COUNTER = getMicrosecondTime() - MICROSECOND_START;
+}
+
+
+typedef bool boolean;
+
+#ifndef INTERVAL_H
+#define INTERVAL_H
+
+class Interval {
+public:
+	Interval( uint32_t period );
+	boolean hasPassed();
+private:
+	uint32_t _lastFired;
+	uint32_t _period;
+};
+
+#endif
+
+
+// Interval.cpp
+
+Interval::Interval(  uint32_t period ) : _lastFired(0)
+{
+	_period = period;
+}
+
+boolean Interval::hasPassed()
+{
+	if ( millis() > _lastFired + _period )
+	{
+		_lastFired = millis();
+		return 1;
+	}
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 // globals.h
 
 #define ADDR_UNASSIGNED 0x00
@@ -645,16 +726,7 @@ void UnixSlave::loop()
 
 #ifdef MASTER
 
-#include <sys/time.h>
-#include <poll.h>
 
-struct timeval stTimeVal;
-
-inline long long getMicrosecondTime()
-{
-	gettimeofday(&stTimeVal, NULL);
-	return stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
-}
 
 int handleCommand( char *b, int s )
 {
@@ -688,10 +760,12 @@ int main(void)
 	fds[0].fd = stdin; /* this is STDIN */
 	fds[0].events = POLLIN;
 
-	long long start = getMicrosecondTime();
+	// long long start = getMicrosecondTime();
 
 	char buff[1000];
 	char *bpos = buff;
+
+startMicrosecondCounter();
 
 	while (1) {
 
@@ -708,11 +782,12 @@ int main(void)
 		}
 
 
-		//net.loop();
+		// net.loop();
 
-		long long end = getMicrosecondTime();
+		// long long end = getMicrosecondTime();
 
-		printf( "took %lld\n", end - start);
+		updateMicrosecondCounter();
+		printf( "took %lld\n", millis() );
 	}
 
 }
