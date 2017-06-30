@@ -137,7 +137,7 @@ uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 // sizeof( Packet ) + payload + 1 bytes for CRC
 
 struct Packet {
-	void clear() { dest=0;src=0;destPort=0;size=0; };
+	void clear() { dest = 0; src = 0; destPort = 0; size = 0; };
 	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
 	uint8_t src;  // The source address
 	uint8_t destPort; // The destination port
@@ -184,7 +184,7 @@ public:
 	virtual void initialize() = 0;
 	// Called when a packet is routed to us
 	virtual int handlePacket( Packet *p ) = 0;
-	// Called with a scatch packet template 
+	// Called with a scatch packet template
 	virtual int pollPacket( Packet *p ) = 0;
 	int port;
 
@@ -646,37 +646,85 @@ void UnixSlave::loop()
 #ifdef MASTER
 
 #include <sys/time.h>
+#include <poll.h>
+
+struct timeval stTimeVal;
+
+inline long long getMicrosecondTime()
+{
+	gettimeofday(&stTimeVal, NULL);
+	return stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
+}
+
+int handleCommand( char *b, int s )
+{
+	for ( int i = 0 ; i < s ; i++ )
+	{
+		if ( b[i] == '\n') {
+			b[i] = '\0';
+			printf( "Str: %s\n", b );
+		}
+	}
+
+
+
+
+	return 1;
+}
 
 int main(void)
 {
 	Network net;
 
 
-
-struct timeval stTimeVal;
-  gettimeofday(&stTimeVal, NULL);
-  long long start = stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
-
-	uint8_t x[] = { 1, 2, 3, 4, 5 };
-
 	UnixMaster um;
 	um.initialize();
 	net.datalink = &um;
 	um.network = &net;
 
-	// um.sendFrame( x , 5 );
+	int stdin = 0;
 
-	net.address = 0x55;
-//	net.sendPacket( 0x22, 0x15, 5, x );
-  gettimeofday(&stTimeVal, NULL);
-  long long end = stTimeVal.tv_sec * 1000000ll + stTimeVal.tv_usec;
+	struct pollfd fds[2];
+	fds[0].fd = stdin; /* this is STDIN */
+	fds[0].events = POLLIN;
+
+	long long start = getMicrosecondTime();
+
+	char buff[1000];
+	char *bpos = buff;
+
+	while (1) {
+
+		if ( poll( fds, 1, 200 ) > 0 ) {
+			int r = read(stdin, bpos, 1000 + buff - bpos);
+			printf( "got %d\n", r );
+			bpos += r;
+			if ( handleCommand( buff, bpos - buff )) {
+				bpos = buff;
+			}
 
 
-  
-  printf( "took %lld\n", end - start);
-  
+
+		}
+
+
+		net.loop();
+
+		long long end = getMicrosecondTime();
+
+		printf( "took %lld\n", end - start);
+	}
 
 }
+
+
+
+//			uint8_t x[] = { 1, 2, 3, 4, 5 };
+// um.sendFrame( x , 5 );
+//			net.address = 0x55;
+//	net.sendPacket( 0x22, 0x15, 5, x );
+
+
 
 #else
 
