@@ -160,6 +160,12 @@ void printDebug( uint8_t i, int format)
 	}
 }
 
+void printDebugln( const char *s )
+{
+	printf( "%s\n", s );
+}
+
+
 void printDebugln( char *s )
 {
 	printf( "%s\n", s );
@@ -274,50 +280,6 @@ public:
 
 
 
-class DeviceControlService : public Service {
-
-public:
-	virtual void initialize();
-	virtual int handlePacket( Packet *p );
-	virtual int pollPacket( Packet *p );
-	virtual void loop();
-
-	enum { controller, master, peer } role;
-
-private:
-
-
-};
-
-
-void DeviceControlService::initialize()
-{
-
-}
-
-#define DCS_REQUEST_ADDRESS 0x50
-#define DCS_ASSIGN_ADDRESS 0x51
-#define DCS_QUERY
-
-
-int DeviceControlService::handlePacket(Packet *p)
-{
-	return -1000;
-}
-
-int DeviceControlService::pollPacket(Packet *p)
-{
-	return -1000;
-}
-
-void DeviceControlService::loop()
-{
-
-}
-
-
-
-
 // The Network object implements a layer of the "network" - contiguous set of
 // nodes over one or more data links. Handles forming packets, managing
 // addresses, etc. All Makernet networks must have one "controller".
@@ -354,6 +316,7 @@ public:
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);
 	Datalink *datalink;
 	void initialize();
+	void useDatalink( Datalink *dl);
 	int registerService( int port, Service *s );
 	void loop();
 
@@ -407,6 +370,7 @@ public:
 // framework objects like Network and Datalink.
 
 class _Makernet {
+public:
 	Network network;
 	void initialize();
 };
@@ -429,9 +393,15 @@ void Network::initialize()
 	for ( int i = 0 ; i < NUM_PORTS ; i++ )
 		services[i] = NULL;
 
+	datalink->initialize();
+
 	return;
 }
 
+void Network::useDatalink( Datalink *dl)
+{
+	datalink = dl;
+}
 
 void Network::loop()
 {
@@ -463,7 +433,7 @@ int Network::routePacket( Packet *p  )
 
 // Registers and initializes service
 
-int Network::registerService( int port, Service *s )
+int Network::registerService( int port, Service* s )
 {
 	if ( port >= NUM_PORTS or port < 0 )
 		return -1;
@@ -569,6 +539,71 @@ int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, ui
 	return sendRawPacket( destination, address, destPort, size, payload );
 
 }
+
+
+
+
+
+
+class DeviceControlService : public Service {
+
+public:
+	virtual void initialize();
+	virtual int handlePacket( Packet *p );
+	virtual int pollPacket( Packet *p );
+	virtual void loop();
+
+	enum { master, slave, peer } role;
+
+private:
+
+	Interval pollingTimer = Interval(1000);
+
+};
+
+
+void DeviceControlService::initialize()
+{
+
+}
+
+#define DCS_REQUEST_ADDRESS 0x50
+#define DCS_ASSIGN_ADDRESS 0x51
+#define DCS_QUERY
+
+
+int DeviceControlService::handlePacket(Packet *p)
+{
+	return -1000;
+}
+
+int DeviceControlService::pollPacket(Packet *p)
+{
+	return -1000;
+}
+
+void DeviceControlService::loop()
+{
+	if ( role == master )
+		if ( pollingTimer.hasPassed() )
+		{
+			DLN( "Time for a polling packet!");
+			Makernet.network;
+
+		}
+
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 // Our callers can use this to set a callback when a new frame is received
@@ -781,15 +816,30 @@ int handleCommand( char *b, int s )
 
 int main(void)
 {
-	Network net;
-	net.initialize();
-
+	DeviceControlService dcs;
 	UnixMaster um;
-	um.initialize();
-	net.datalink = &um;
-	um.network = &net;
+
+	Makernet.network.useDatalink( &um );
+	Makernet.network.registerService(0, &dcs);
+
+	Makernet.initialize();
+
+	// Network net;
+	// net.initialize();
+
+
+	// um.initialize();
+	// net.datalink = &um;
+	// um.network = &net;
 
 	int stdin = 0;
+
+
+//	dcs.initialize();
+
+
+//	net.registerService( 0, &dcs );
+
 
 	struct pollfd fds[2];
 	fds[0].fd = stdin; /* this is STDIN */
@@ -817,7 +867,7 @@ int main(void)
 		}
 
 
-		net.loop();
+		Makernet.network.loop();
 
 		// long long end = getMicrosecondTime();
 
