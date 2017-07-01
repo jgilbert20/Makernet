@@ -15,6 +15,14 @@
 #include <unistd.h>
 
 
+// Everything here is in the faking it category
+
+uint16_t FAKEHARDWAREID = 0;
+
+uint16_t getHardwareID()
+{
+	return FAKEHARDWAREID;
+}
 
 
 
@@ -222,20 +230,31 @@ uint8_t calculateCRC( uint8_t in, uint8_t *b, int size )
 }
 
 
+// This is the parent of all packet types. The first bytes of all packet types
+// are represented here. Different protocols can downcast to their own
+// specific types of packets. This doesn't cost anything at runtime and means
+// that the various sub-protocols can be more self-documenting.
+
+struct PacketHeader {
+	void clear() { dest = ADDR_UNASSIGNED; src = 0; destPort = 0; size = 0; };
+	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
+	uint8_t src;  // The source address
+	uint8_t destPort; // The destination port
+	uint8_t size; // The size of the payload in bytes
+};
+
+
 // The makernet packet header is a common object used to "address" a packet.
 // For maximimum effciency and economy of processor time and memory, this
 // header is the direct byte order and contents of the first N bytes of all
 // makernet messages. Note that the entire makernet message is actually
 // sizeof( Packet ) + payload + 1 bytes for CRC
 
-struct Packet {
-	void clear() { dest = ADDR_UNASSIGNED; src = 0; destPort = 0; size = 0; };
-	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
-	uint8_t src;  // The source address
-	uint8_t destPort; // The destination port
-	uint8_t size; // The size of the payload in bytes
+struct Packet : public PacketHeader {
 	uint8_t payload[]; // The actual payload
 };
+
+
 
 
 // struct DeviceControlMessage : Packet {
@@ -377,9 +396,20 @@ public:
 // so that each object is not forced to carry around pointers to the
 // framework objects like Network and Datalink.
 
+typedef enum {
+	Unassigned = 0,
+	Controller = 1,
+	Encoder = 2
+} DeviceType;
+
+
 class _Makernet {
 public:
 	Network network;
+	DeviceType deviceType;
+	uint16_t hardwareID;
+	uint16_t generation;
+
 	void initialize();
 };
 
@@ -391,6 +421,9 @@ Network::Network() {
 
 void _Makernet::initialize()
 {
+	DLN( "**** Makernet framwork init");
+	generation = random();
+	hardwareID = getHardwareID();
 	network.initialize();
 }
 
@@ -425,11 +458,15 @@ int Network::sendNextPacket()
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL ) {
-			if ( s->pollPacket(p) ) {
+			if ( s->pollPacket(p) > 0 ) {
 				int r = sendPacket( p );
 				if ( r < 0 ) {
 					DPR( "sendPacket had error:");
 					DLN( r );
+
+
+					// DLN( p->size );
+
 				}
 				return 1;
 			}
@@ -444,7 +481,9 @@ int Network::sendNextPacket()
 
 void Network::loop()
 {
-	DLN( "--- Network Loop ---");
+// 	DLN( "--- Network Loop ---");
+	DPF( "--- Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
+
 
 	// Give all services a loop() opportunity
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
@@ -536,7 +575,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 // pollFrame is typically invoked by the datalink layer when a network
 // condition allows a frame to be transmitted (e.g. link is pending),
 // typically in cases where the datalink is acting as a slave and the master
-// has given it permission to send.
+// has given it permission to send. Must return the number of bytes to send; 
 
 int Network::pollFrame( uint8_t *buffer, uint8_t len )
 {
@@ -550,7 +589,7 @@ int Network::pollFrame( uint8_t *buffer, uint8_t len )
 			if ( pollRetValue > 0 ) {
 				int finalRetValue = finalizePacketToFrame( p );
 				if ( finalRetValue > 0 )
-					return 1;
+					return finalRetValue;
 				else {
 					DPR( "Return packet failed to finalize: err");
 					DPR( finalRetValue );
@@ -583,6 +622,8 @@ int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uin
 	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
 		return -100;
 
+
+
 	uint8_t *buffer = datalink->frameBuffer;
 
 	((Packet *)buffer)->dest = destination;
@@ -601,10 +642,14 @@ int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uin
 
 
 // Handles all of the mojo needed to make a packet able to sit on the wire
-// such as adding a checksum and range checking the packet. Returns 1 if the packet is OK, otherwise negative.
+// such as adding a checksum and range checking the packet. Returns full size
+// of the frame if the packet is OK, otherwise negative.
 
 int Network::finalizePacketToFrame( Packet *p )
 {
+
+	DPF( "Size = %d\n", p->size );
+
 	if ( p == NULL )
 		return -3000;
 
@@ -627,20 +672,26 @@ int Network::finalizePacketToFrame( Packet *p )
 
 	payloadPtr[size] = crc;
 
-	return 1;
+		DLN("finalize complete..");
+
+
+	return sizeof( Packet ) + p->size + 1;
 }
 
 // returns 1 on successful send, otherwise negative
 
 int Network::sendPacket( Packet *p )
 {
+	if ( Makernet.network.role != master ) {
+		DLN( "Internal consistency issue! Non-master tried to send a unrequested packet");
+		return -1000;
+	}
+
 	int r = finalizePacketToFrame( p );
 	if ( r <= 0 )
 		return r;
 
-	int size = p->size;
-
-	return datalink->sendFrame( (uint8_t *)p, sizeof( Packet ) + size + 1 );
+	return datalink->sendFrame( (uint8_t *)p, r );
 }
 
 
@@ -686,10 +737,95 @@ void DeviceControlService::initialize()
 #define DCS_ASSIGN_ADDRESS 0x51
 #define DCS_GENERAL_POLL 0x55
 
+// Payload of all generic device control messages
+
+struct DeviceControlMessage {
+	uint8_t command;
+	uint8_t payload[];
+};
+
+// Payload of messages requesting an address
+
+struct DCSAddressRequestMessage {
+	uint8_t command;
+	DeviceType type;
+	uint8_t hardwareID_H;
+	uint8_t hardwareID_L;
+};
+
+// Payload of messages setting an address
+
+struct DCSAddressAssignMessage {
+	uint8_t command;
+	uint8_t hardwareID_H;
+	uint8_t hardwareID_L;
+	int generation;
+};
+
+
+// A structure used to describe the network properties of a device. Contains
+// fields that are managed by the Device Control Service and can  be stored on
+// peripherals or other addressable objects.
+
+struct DeviceDescriptor {
+	uint16_t hardwareID; // immutable hardware ID
+	DeviceType type;
+	uint8_t addresss;
+	bool connected;
+	int generation;
+};
+
+
+
+// Address vending logic design
+//
+// In the current Makernet architecutre, devices only receive IDs when they
+// are linked to a controll object on the controller. This is basically the
+// entire connection architecture, and devices that cannot be linked will not
+// get addresses.
+//
+// Periodically devices needing addresses emit a REQUEST_ADDRESS packet with
+// some meta-data including their unique device ID. The controller on the
+// network will assign them an available address by calling into the
+// Peripheral framework with the metadata. The peripheral wanting a link will
+// return its pointer and the address is assigned. A packet is emitted to make
+// the assignment. If the packet is received, the remote device will define
+// its network location to the new variable and all further peripheral data
+// will now flow to the address issued completing the link. If the packet is
+// dropped, subsequent REQUEST_ADDRESS requests will re-establish th
 
 int DeviceControlService::handlePacket(Packet *p)
 {
-	DLN( "Handle packet default!!");
+	DLN( "Handle packet");
+
+	if ( p->size < 1) {
+		DLN( "Runt packet rejected");
+		return -300;
+	}
+
+	DeviceControlMessage *dm = (DeviceControlMessage *)p;
+
+	if ( dm->command == DCS_REQUEST_ADDRESS ) {
+		if ( p->size > 1 ) {
+			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)dm->payload;
+			DeviceType type = msg->type;
+			DPF( "Assign address for type [%d]", type );
+			if ( Makernet.network.role == Network::master ) {
+				DeviceDescriptor dd;
+				dd.hardwareID = 0; //TODO
+				dd.type = msg->type;
+
+			}
+
+		}
+
+
+
+
+
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -715,11 +851,20 @@ int DeviceControlService::pollPacket(Packet *p)
 			DLN( "Time for a request packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
-			p->size = 1;
-			p->payload[0] = DCS_REQUEST_ADDRESS;
+			p->size = sizeof( DCSAddressRequestMessage );
+			DLN( p->size );
+			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
+
+
+
+			msg->command = DCS_REQUEST_ADDRESS;
+			msg->type = Makernet.deviceType;
+			msg->hardwareID_H = 0x31;
+			msg->hardwareID_L = 0x14;
+
+
 			return 1;
 		}
-
 
 	return 0;
 }
@@ -911,7 +1056,8 @@ void UnixSlave::loop()
 		for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ )
 			frameBuffer[i] = 0;
 
-		Makernet.network.pollFrame( frameBuffer, n );
+		n = Makernet.network.pollFrame( frameBuffer, n );
+
 
 		if (!done)
 			if (send(s2, frameBuffer, n, 0) < 0) {
@@ -946,6 +1092,7 @@ void UnixSlave::loop()
 
 
 
+
 int handleCommand( char *b, int s )
 {
 	for ( int i = 0 ; i < s ; i++ )
@@ -964,6 +1111,9 @@ int handleCommand( char *b, int s )
 
 int main(void)
 {
+	FAKEHARDWAREID = 0x8877;
+
+
 	DeviceControlService dcs;
 	Makernet.network.role = Network::master;
 	UnixMaster um;
