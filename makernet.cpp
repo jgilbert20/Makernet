@@ -395,12 +395,18 @@ public:
 // optimization, the singleton is used inside the Makernet framework itself
 // so that each object is not forced to carry around pointers to the
 // framework objects like Network and Datalink.
+//
+// Note that DeviceType will be embedded into structures that define network
+// messages so its type needs be explicitly defined so it can be consistent
+// across platforms. (C++11 actually does allow subclassing from a integer
+// type but its unclear if this is supported across all makernet desired
+// platforms
 
-typedef enum {
+enum class DeviceType {
 	Unassigned = 0,
 	Controller = 1,
 	Encoder = 2
-} DeviceType;
+} ;
 
 
 class _Makernet {
@@ -748,10 +754,10 @@ struct DeviceControlMessage {
 
 struct DCSAddressRequestMessage {
 	uint8_t command;
-	DeviceType type;
+	uint8_t deviceType;
 	uint8_t hardwareID_H;
 	uint8_t hardwareID_L;
-};
+} __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
 
 // Payload of messages setting an address
 
@@ -760,7 +766,7 @@ struct DCSAddressAssignMessage {
 	uint8_t hardwareID_H;
 	uint8_t hardwareID_L;
 	int generation;
-};
+} __attribute__((packed));
 
 
 // A structure used to describe the network properties of a device. Contains
@@ -769,7 +775,7 @@ struct DCSAddressAssignMessage {
 
 struct DeviceDescriptor {
 	uint16_t hardwareID; // immutable hardware ID
-	DeviceType type;
+	uint8_t deviceType;
 	uint8_t addresss;
 	bool connected;
 	int generation;
@@ -808,12 +814,12 @@ int DeviceControlService::handlePacket(Packet *p)
 	if ( dm->command == DCS_REQUEST_ADDRESS ) {
 		if ( p->size > 1 ) {
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)dm->payload;
-			DeviceType type = msg->type;
+			DeviceType type = (DeviceType)msg->deviceType;
 			DPF( "Assign address for type [%d]", type );
 			if ( Makernet.network.role == Network::master ) {
 				DeviceDescriptor dd;
 				dd.hardwareID = 0; //TODO
-				dd.type = msg->type;
+				dd.deviceType = msg->deviceType;
 
 			}
 
@@ -853,12 +859,13 @@ int DeviceControlService::pollPacket(Packet *p)
 			p->destPort = 0;
 			p->size = sizeof( DCSAddressRequestMessage );
 			DLN( p->size );
+			DLN( sizeof( DeviceType ) );
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 
 
 
 			msg->command = DCS_REQUEST_ADDRESS;
-			msg->type = Makernet.deviceType;
+			msg->deviceType = (uint8_t)Makernet.deviceType;
 			msg->hardwareID_H = 0x31;
 			msg->hardwareID_L = 0x14;
 
@@ -1152,7 +1159,6 @@ int main(void)
 	startMicrosecondCounter();
 
 	while (1) {
-
 		if ( poll( fds, 1, 200 ) > 0 ) {
 			int r = read(stdin, bpos, 1000 + buff - bpos);
 			printf( "got %d\n", r );
@@ -1160,9 +1166,6 @@ int main(void)
 			if ( handleCommand( buff, bpos - buff )) {
 				bpos = buff;
 			}
-
-
-
 		}
 
 

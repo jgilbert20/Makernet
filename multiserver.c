@@ -118,7 +118,7 @@ int main(void)
 					printf( ">>>> {%d} (%d) %s\n", fds[i].fd, n, str );
 					// Echo to all connections
 					for ( int x = 0 ; x < 100 ; x++ ) {
-						int sock = fds[x].fd; 
+						int sock = fds[x].fd;
 						if ( sock > 0 && sock != listenSocket ) {
 							printf( "echo to %d\n", sock);
 							send(sock, str, n, 0);
