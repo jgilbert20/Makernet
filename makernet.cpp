@@ -437,6 +437,17 @@ void _Makernet::initialize()
 _Makernet Makernet;
 
 
+// This structure defines the essential parameters of a device identity. 
+
+struct DeviceProfile
+{	
+	bool connected;
+	uint16_t hardwareID;
+	DeviceType deviceType;
+	uint8_t address;
+}
+
+
 // Baseperipheral.h
 
 
@@ -475,6 +486,8 @@ private:
 	// bool _disconnected;
 
 	DeviceType _deviceType;
+
+	DeviceProfile connectedDevice;
 
 	// Linked list of peripherals
 	static BasePeripheral *_firstPeripheral;
