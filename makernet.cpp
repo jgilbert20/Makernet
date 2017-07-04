@@ -437,6 +437,117 @@ void _Makernet::initialize()
 _Makernet Makernet;
 
 
+// Baseperipheral.h
+
+
+// The base peripheral class defines a group of proxy objects that provide a
+// clean programmer interface to makernet peripherals. The constructor and
+// destructor have been designed to automatically maintain a global linked
+// list of all object instances so that no additional action from the end-user
+// is needed to handle dispatch and discovery. (I learned this pattern from EKT
+// who uses it very effectively in her Modulo framework.)
+
+class BasePeripheral {
+public:
+	// destructor, enables universal linked list tracking
+	virtual ~BasePeripheral();
+	// Constructor
+	BasePeripheral(DeviceType deviceType);
+	// Look up a peripheral by a device ID
+	static BasePeripheral *findByDeviceID(uint16_t query);
+
+
+	// Returns the device ID
+	uint16_t getDeviceID();
+	// Configure is called 1x at system configure time by the superclass
+	virtual void configure();
+
+
+private:
+	// Internal tracking UUID
+	long _uuid;
+	// Internal init handler function
+	void _init();
+
+	// uint8_t _deviceType;
+	// uint16_t _deviceID;
+	// uint8_t _address;
+	// bool _disconnected;
+
+	DeviceType _deviceType;
+
+	// Linked list of peripherals
+	static BasePeripheral *_firstPeripheral;
+	BasePeripheral *_nextPeripheral;
+};
+
+
+long uuid_gen = 0x10000;
+BasePeripheral* BasePeripheral::_firstPeripheral = NULL;
+
+BasePeripheral::BasePeripheral(DeviceType deviceType) :
+	_deviceType(deviceType)
+{
+
+	// Add to our our linked list
+	BasePeripheral **endPtr = &_firstPeripheral;
+	while (*endPtr) {
+		endPtr = &((*endPtr)->_nextPeripheral);
+	}
+
+	*endPtr = this;
+	_uuid = uuid_gen++;
+}
+
+
+void BasePeripheral::_init() {
+	DPR( "Init called, object uuid=");
+	DPR( _uuid, HEX );
+	DPR( "  Type:");
+	//DPR( _deviceType );
+	DLN();
+
+	configure();
+}
+
+BasePeripheral::~BasePeripheral() {
+	// Remove this peripheral from the global linked list
+	BasePeripheral *prev = NULL;
+	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral) {
+		if (p == this) {
+			if (prev) {
+				prev->_nextPeripheral = _nextPeripheral;
+			} else {
+				_firstPeripheral = _nextPeripheral;
+			}
+		}
+	}
+}
+
+void BasePeripheral::configure()
+{
+	DLN( "Default BasePeripheral::configure() called");
+}
+
+
+class EncoderPeripheral : public BasePeripheral {
+public:
+	EncoderPeripheral();
+
+
+};
+
+EncoderPeripheral::EncoderPeripheral() :
+	BasePeripheral(DeviceType::Encoder)
+{
+
+}
+
+
+
+EncoderPeripheral encoder;
+
+
 // Called when the framework is initialized
 
 void Network::initialize()
@@ -581,7 +692,7 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 // pollFrame is typically invoked by the datalink layer when a network
 // condition allows a frame to be transmitted (e.g. link is pending),
 // typically in cases where the datalink is acting as a slave and the master
-// has given it permission to send. Must return the number of bytes to send; 
+// has given it permission to send. Must return the number of bytes to send;
 
 int Network::pollFrame( uint8_t *buffer, uint8_t len )
 {
@@ -678,7 +789,7 @@ int Network::finalizePacketToFrame( Packet *p )
 
 	payloadPtr[size] = crc;
 
-		DLN("finalize complete..");
+	DLN("finalize complete..");
 
 
 	return sizeof( Packet ) + p->size + 1;
