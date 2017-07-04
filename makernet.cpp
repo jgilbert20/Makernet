@@ -445,7 +445,7 @@ struct DeviceProfile
 	uint16_t hardwareID;
 	DeviceType deviceType;
 	uint8_t address;
-}
+};
 
 
 // Baseperipheral.h
