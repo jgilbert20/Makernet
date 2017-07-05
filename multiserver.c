@@ -1,6 +1,7 @@
-/*
-** echos.c -- the echo server for echoc.c; demonstrates unix sockets
-*/
+//
+//
+// cc multiserver.c -o multiserver && rm /tmp/echo_socke && ./multiserver
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,9 +18,9 @@ typedef int bool;
 #define false 0
 
 #define SOCK_PATH "/tmp/echo_socket"
-	
 
-	void hexPrint( uint8_t *buffer, int size )
+
+void hexPrint( uint8_t *buffer, int size )
 {
 	for ( int i = 0 ; i < size ; i++ ) {
 		uint8_t value = buffer[i];
@@ -30,7 +31,7 @@ typedef int bool;
 	}
 }
 
-#define NUMFDS 100 
+#define NUMFDS 100
 
 int main(void)
 {
@@ -57,23 +58,15 @@ int main(void)
 		exit(1);
 	}
 
-
-
 	struct pollfd fds[NUMFDS];
 	fds[0].fd = listenSocket; /* this is STDIN */
 	fds[0].events = POLLIN;
 
-
 	int nextFreeSlot = 1;
 
-
 	for (;;) {
-
-
 		int p =		poll( fds, NUMFDS, 1000 );
-		printf( "poll returned %d\n", p );
-
-
+		//	printf( "poll returned %d\n", p );
 		for ( int i = 0 ; i < NUMFDS ; i++ ) {
 			if ( fds[i].revents & POLLERR ) {
 				printf( "ERR - Closing connection stream %d\n", fds[i].fd  );
@@ -94,8 +87,6 @@ int main(void)
 				fds[i].events = 0;
 				fds[i].fd = -1;
 			}
-
-
 
 			if ( fds[i].revents & POLLIN ) {
 				printf( "read available on %d\n", i );
@@ -141,16 +132,10 @@ int main(void)
 							send(sock, str, n, 0);
 						}
 					}
-
-
 				}
-
 			}
-
 		}
-
 	}
-
 	return 0;
 }
 
