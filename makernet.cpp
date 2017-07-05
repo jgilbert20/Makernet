@@ -426,6 +426,7 @@ private:
 // datalink interface is made interchangable so that multiple datalinks such
 // as I2C, RFM, and even ethernet could all be makernet enabled.
 
+
 #define MAX_MAKERNET_FRAME_LENGTH 255
 
 typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
@@ -674,7 +675,9 @@ void Network::useDatalink( Datalink *dl)
 }
 
 // Internal handler that polls all services for their next packet and
-// generates exactly one packet onto the wire.
+// generates exactly one packet onto the wire. This route is only used in
+// peer-to-peer, not for I2C-like transactional communciation, and it is called
+// by the master loop.
 
 int Network::sendNextPacket()
 {
@@ -712,7 +715,6 @@ void Network::loop()
 // 	DLN( "--- Network Loop ---");
 	DPF( "--- Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
 
-
 	// Give all services a loop() opportunity
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
@@ -720,14 +722,14 @@ void Network::loop()
 			s->loop();
 	}
 
-	sendNextPacket();
-
-
+	if ( Makernet.network.role != slave )
+		sendNextPacket();
 }
 
 
-// Called when we have a valid packet that is meant for us. From this point on
-// in the stack, we can assume everything about the packet checks out.
+// routePacket() is alled when we have a valid packet that is meant for us.
+// From this point on upwards into the stack, we can assume everything about
+// the packet checks out (checksum, address, etc).
 //
 // Negative return values mean an error. Zero return values mean everything is
 // fine. Positive return values have meaning TBD (could mean a reply is queued
@@ -738,6 +740,9 @@ int Network::routePacket( Packet *p  )
 {
 	if ( p == NULL )
 		return -200;
+
+	if ( p->destPort < 0 or p->destPort >= NUM_PORTS )
+		return -204;
 
 	Service *service = services[p->destPort];
 	if ( service == NULL )
@@ -758,9 +763,10 @@ int Network::registerService( int port, Service* s )
 	return 1;
 }
 
-// Called when a network interface identifies an inbound frame Purpose is to
-// boundary check everything and ensure it is a valid packet so that no
-// further data validation is needed upstream.
+// Called when a network interface (the Datalink object) identifies an inbound
+// frame. Purpose is to boundary check everything and ensure it is a valid
+// packet so that no further data validation is needed upstream and then route
+// the packet up into the network stack.
 
 void Network::handleFrame(uint8_t *buffer, uint8_t len )
 {
@@ -800,14 +806,18 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 		DPR( "Frame failed to route, err=" );
 		DPR( s );
 		DLN();
-
 	}
+
+
+
 }
 
-// pollFrame is typically invoked by the datalink layer when a network
-// condition allows a frame to be transmitted (e.g. link is pending),
-// typically in cases where the datalink is acting as a slave and the master
-// has given it permission to send. Must return the number of bytes to send;
+// pollFrame is invoked by the datalink layer when a network condition allows
+// a frame to be transmitted (e.g. link is pending), typically in cases where
+// the datalink is acting as a slave and the master has given it permission to
+// send. Must return the number of bytes to send. Note that in transaction-
+// free peer-to-peer network architectures, pollFrame may NEVER be called so
+// it should not be relied on.
 
 int Network::pollFrame( uint8_t *buffer, uint8_t len )
 {
@@ -1218,8 +1228,15 @@ void UnixMaster::initialize()
 
 }
 
+typedef struct { uint8_t value[5] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; } ThunkMessage;
+
+ThunkMessage thunk;
+
+// Called by upper layers to send a frame.
+
 int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 {
+
 	if (send(sock, inBuffer, len, 0) == -1) {
 		perror("send");
 		exit(1);
@@ -1231,7 +1248,17 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 	hexPrint( inBuffer, len );
 	DLN();
 
-	// processIncomingFrame();
+	// If we are a master, we need to emulate the idea of opening the bus for
+	// responses the same way that I2C works when the master holds the clock
+	// line after its finished sending. This happens by emitting a 5 byte FF
+	// signature.
+
+	if ( Makernet.network.role == Network::master ) {
+		if ( send(sock, (uint8_t *)&thunk, 5, 0) == -1 ) {
+			perror("send");
+			exit(1);
+		}
+	}
 
 	return 0;
 }
@@ -1248,6 +1275,17 @@ void UnixMaster::processIncomingFrame()
 		DPR( ") ");
 		hexPrint( frameBuffer, t );
 		DLN();
+
+		// check for the master broadcast "thunk"
+		if ( t == 5 and Makernet.network.role == Network::slave )
+		{
+			if ( memcmp( &thunk, frameBuffer, 5) == 0 )
+			{
+				DPR( "Thunk received!!!");
+				DLN();
+				exit(0);
+			}
+		}
 
 		if ( t > 0 )
 			Makernet.network.handleFrame( frameBuffer, t );
@@ -1431,7 +1469,6 @@ int main(void)
 {
 	FAKEHARDWAREID = 0x8877;
 
-
 	DeviceControlService dcs;
 	Makernet.network.role = Network::master;
 	UnixMaster um;
@@ -1441,23 +1478,6 @@ int main(void)
 
 	Makernet.initialize();
 
-	// Network net;
-	// net.initialize();
-
-
-	// um.initialize();
-	// net.datalink = &um;
-	// um.network = &net;
-
-	int stdin = 0;
-
-
-//	dcs.initialize();
-
-
-//	net.registerService( 0, &dcs );
-
-
 	startMicrosecondCounter();
 
 	while (1)
@@ -1466,21 +1486,7 @@ int main(void)
 		Makernet.network.loop();
 		updateMicrosecondCounter();
 	}
-	// long long end = getMicrosecondTime();
-
-	
-	printf( "took %u\n", millis() );
-
 }
-
-
-
-//			uint8_t x[] = { 1, 2, 3, 4, 5 };
-// um.sendFrame( x , 5 );
-//			net.address = 0x55;
-//	net.sendPacket( 0x22, 0x15, 5, x );
-
-
 
 #else
 
@@ -1502,7 +1508,7 @@ int main(void)
 	while (1)
 	{
 		um.loop();
-		Makernet.network.loop();
+		//Makernet.network.loop();
 		updateMicrosecondCounter();
 	}
 
