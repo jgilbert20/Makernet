@@ -624,13 +624,13 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 	// First look for hardware matches
 
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
-		if ( p->connectedDevice.hardwareID != HWID_UNASSIGNED
+		if ( p->connectedDevice.hardwareID != HWID_UNASSIGNED and
 		        dp->hardwareID == p->connectedDevice.hardwareID )
 			return p;
 
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
 		if ( p->connectedDevice.connected == 0 and
-			p->DeviceType = dp->deviceType ) 
+			p->_deviceType == dp->deviceType )
 			return p;
 
 
@@ -1122,8 +1122,6 @@ int DeviceControlService::pollPacket(Packet *p)
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = sizeof( DCSAddressRequestMessage );
-			DLN( p->size );
-			DLN( sizeof( DeviceType ) );
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 
 
@@ -1462,6 +1460,8 @@ int main(void)
 
 	Makernet.network.useDatalink( &us );
 	Makernet.network.registerService(0, &dcs);
+
+	Makernet.deviceType = DeviceType::Encoder;
 
 	Makernet.initialize();
 
