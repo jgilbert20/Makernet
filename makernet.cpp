@@ -630,7 +630,7 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
 		if ( p->connectedDevice.connected == 0 and
-			p->_deviceType == dp->deviceType )
+		        p->_deviceType == dp->deviceType )
 			return p;
 
 
@@ -1153,7 +1153,7 @@ void DeviceControlService::loop()
 
 
 
-
+// UnixMaster implementes a Datalink layer for the UNIX testbed.
 
 
 
@@ -1166,13 +1166,25 @@ void DeviceControlService::loop()
 
 // An implementation of UNIX domain socket master
 
+
+
 class UnixMaster : public Datalink {
 public:
 	virtual void initialize();
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len );
+	int loop();
+	void processIncomingFrame();
+	bool handleSTDIN( char *b, int s );
+	typedef void (*UserCommandHandler)(char *cmd, int len );
+	UserCommandHandler handleCommand = NULL;
+
 private:
 	struct sockaddr_un remote;
 	int sock;
+
+	char userCommandBuffer[1000];
+	char *bpos = userCommandBuffer;
+
 
 };
 
@@ -1219,7 +1231,13 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 	hexPrint( inBuffer, len );
 	DLN();
 
+	// processIncomingFrame();
 
+	return 0;
+}
+
+void UnixMaster::processIncomingFrame()
+{
 	int t;
 
 	if ((t = recv(sock, frameBuffer, MAX_MAKERNET_FRAME_LENGTH, 0)) > 0) {
@@ -1239,10 +1257,56 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 		else printf("Server closed connection\n");
 		exit(1);
 	}
-
-
-	return 0;
 }
+
+bool UnixMaster::handleSTDIN( char *b, int s )
+{
+	for ( int i = 0 ; i < s ; i++ )
+	{
+		if ( b[i] == '\n') {
+			b[i] = '\0';
+			printf( "*** Command from STDIN: [%s]\n", b );
+			if ( handleCommand != NULL )
+				handleCommand( b, s );
+			return true;
+		}
+	}
+
+	return false;
+
+}
+
+int UnixMaster::loop()
+{
+	struct pollfd fds[2];
+
+	const int stdin = 0;
+
+	fds[0].fd = stdin; /* this is STDIN */
+	fds[0].events = POLLIN;
+	fds[1].fd = sock; /* this is our socket */
+	fds[1].events = POLLIN;
+
+	if ( poll( fds, 2, 200 ) > 0 ) {
+		// Handle stdin
+		if ( fds[0].revents & POLLIN ) {
+
+			int r = read(stdin, bpos, 1000 + userCommandBuffer - bpos);
+			printf( "**** read from STDIN: [%d] bytes\n", r );
+			bpos += r;
+			if ( handleSTDIN( userCommandBuffer, bpos - userCommandBuffer )) {
+				DLN( "reset" );
+				bpos = userCommandBuffer;
+			}
+		}
+
+		// Handle network input
+		if ( fds[1].revents & POLLIN )
+			processIncomingFrame();
+	}
+}
+
+
 
 
 class UnixSlave : public Datalink {
@@ -1362,21 +1426,6 @@ void UnixSlave::loop()
 
 
 
-int handleCommand( char *b, int s )
-{
-	for ( int i = 0 ; i < s ; i++ )
-	{
-		if ( b[i] == '\n') {
-			b[i] = '\0';
-			printf( "Str: %s\n", b );
-		}
-	}
-
-
-
-
-	return 1;
-}
 
 int main(void)
 {
@@ -1409,35 +1458,18 @@ int main(void)
 //	net.registerService( 0, &dcs );
 
 
-	struct pollfd fds[2];
-	fds[0].fd = stdin; /* this is STDIN */
-	fds[0].events = POLLIN;
-
-	// long long start = getMicrosecondTime();
-
-	char buff[1000];
-	char *bpos = buff;
-
 	startMicrosecondCounter();
 
-	while (1) {
-		if ( poll( fds, 1, 200 ) > 0 ) {
-			int r = read(stdin, bpos, 1000 + buff - bpos);
-			printf( "got %d\n", r );
-			bpos += r;
-			if ( handleCommand( buff, bpos - buff )) {
-				bpos = buff;
-			}
-		}
-
-
+	while (1)
+	{
+		um.loop();
 		Makernet.network.loop();
-
-		// long long end = getMicrosecondTime();
-
 		updateMicrosecondCounter();
-		printf( "took %u\n", millis() );
 	}
+	// long long end = getMicrosecondTime();
+
+	
+	printf( "took %u\n", millis() );
 
 }
 
@@ -1456,9 +1488,9 @@ int main(void)
 {
 	DeviceControlService dcs;
 	Makernet.network.role = Network::slave;
-	UnixSlave us;
+	UnixMaster um;
 
-	Makernet.network.useDatalink( &us );
+	Makernet.network.useDatalink( &um );
 	Makernet.network.registerService(0, &dcs);
 
 	Makernet.deviceType = DeviceType::Encoder;
@@ -1468,7 +1500,11 @@ int main(void)
 	startMicrosecondCounter();
 
 	while (1)
-		us.loop();
+	{
+		um.loop();
+		Makernet.network.loop();
+		updateMicrosecondCounter();
+	}
 
 
 }

@@ -16,8 +16,20 @@ typedef int bool;
 #define true 1
 #define false 0
 
+#define SOCK_PATH "/tmp/echo_socket"
+	
 
-#define SOCK_PATH "echo_socket"
+	void hexPrint( uint8_t *buffer, int size )
+{
+	for ( int i = 0 ; i < size ; i++ ) {
+		uint8_t value = buffer[i];
+		if (value < 0x10)
+			printf( "0" );
+		printf( "%X", value );
+		printf( " " );
+	}
+}
+
 
 int main(void)
 {
@@ -115,11 +127,14 @@ int main(void)
 						if (n < 0) perror("recv");
 					}
 					str[n] = '\0';
-					printf( ">>>> {%d} (%d) %s\n", fds[i].fd, n, str );
+					printf( ">>>> FD:{%d} SZ:(%d)", fds[i].fd, n );
+					hexPrint( str, n );
+					printf( "\n" );
+
 					// Echo to all connections
 					for ( int x = 0 ; x < 100 ; x++ ) {
 						int sock = fds[x].fd;
-						if ( sock > 0 && sock != listenSocket ) {
+						if ( sock > 0 && sock != listenSocket && x != i ) {
 							printf( "echo to %d\n", sock);
 							send(sock, str, n, 0);
 						}
