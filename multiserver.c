@@ -89,7 +89,7 @@ int main(void)
 			}
 
 			if ( fds[i].revents & POLLIN ) {
-				printf( "read available on %d\n", i );
+				// printf( "read available on %d\n", i );
 				if ( fds[i].fd == listenSocket ) {
 					printf("Waiting for a connection...\n");
 					t = sizeof(remote);
@@ -120,7 +120,7 @@ int main(void)
 						if (n < 0) perror("recv");
 					}
 					str[n] = '\0';
-					printf( ">>>> FD:{%d} SZ:(%d)", fds[i].fd, n );
+					printf( ">>>> FD:{%d} SZ:(%d) :: ", fds[i].fd, n );
 					hexPrint( str, n );
 					printf( "\n" );
 
