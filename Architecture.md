@@ -1,4 +1,6 @@
-Redoing a proper OO frame around makernet
+This is an in-depth technical review of the makernet implementation and API. FOr more general architecture stuff, see the README file.
+
+
 
 # datalink
 
