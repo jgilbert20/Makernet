@@ -1260,7 +1260,7 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 	if ( Makernet.network.role == Network::master ) {
 		int len = sizeof( thunk );
-		
+
 		if (send(sock, &len, 1, 0) == -1) {
 			perror("send");
 			exit(1);
@@ -1278,7 +1278,24 @@ void UnixMaster::processIncomingFrame()
 {
 	int t;
 
-	if ((t = recv(sock, frameBuffer, MAX_MAKERNET_FRAME_LENGTH, 0)) > 0) {
+	uint8_t frameLen;
+
+	t = recv(sock, &frameLen, 1, MSG_WAITALL);
+
+	if ( t <= 0 ) {
+		if (t < 0)
+			perror("recv");
+		else
+			printf("Server closed connection\n");
+		exit(1);
+	}
+
+
+	DPF( "Frame len:[%d]\n", frameLen );
+
+
+
+	if ((t = recv(sock, frameBuffer, frameLen, MSG_WAITALL)) > 0) {
 		frameBuffer[t] = '\0';
 
 		DPR( ">>>> (" );
@@ -1287,23 +1304,40 @@ void UnixMaster::processIncomingFrame()
 		hexPrint( frameBuffer, t );
 		DLN();
 
-		// check for the master broadcast "thunk"
+		// now check for the master broadcast "thunk". This emulation is only
+		// handled in cases where we are pretending to be a master/slave
+		// network and the thunk triggers the poll.
+
 		if ( t == 5 and Makernet.network.role == Network::slave )
-		{
 			if ( memcmp( &thunk, frameBuffer, 5) == 0 )
 			{
 				DPR( "Thunk received!!!");
 				DLN();
-				exit(0);
+
+				for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ )
+					frameBuffer[i] = 0;
+
+				int n = Makernet.network.pollFrame( frameBuffer, n );
+
+				if ( n > 0 )
+					sendFrame( frameBuffer, n );
+
+				return;
 			}
-		}
+
+
+		// Dispatch the frame up to the higher levels of the network
 
 		if ( t > 0 )
 			Makernet.network.handleFrame( frameBuffer, t );
 
+
+
 	} else {
-		if (t < 0) perror("recv");
-		else printf("Server closed connection\n");
+		if (t < 0)
+			perror("recv");
+		else
+			printf("Server closed connection\n");
 		exit(1);
 	}
 }

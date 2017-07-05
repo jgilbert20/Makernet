@@ -30,6 +30,7 @@ typedef int bool;
 	}
 }
 
+#define NUMFDS 100 
 
 int main(void)
 {
@@ -57,7 +58,8 @@ int main(void)
 	}
 
 
-	struct pollfd fds[100];
+
+	struct pollfd fds[NUMFDS];
 	fds[0].fd = listenSocket; /* this is STDIN */
 	fds[0].events = POLLIN;
 
@@ -68,11 +70,11 @@ int main(void)
 	for (;;) {
 
 
-		int p =		poll( fds, 10, 1000 );
+		int p =		poll( fds, NUMFDS, 1000 );
 		printf( "poll returned %d\n", p );
 
 
-		for ( int i = 0 ; i < 100 ; i++ ) {
+		for ( int i = 0 ; i < NUMFDS ; i++ ) {
 			if ( fds[i].revents & POLLERR ) {
 				printf( "ERR - Closing connection stream %d\n", fds[i].fd  );
 				close( fds[i].fd );
