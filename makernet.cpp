@@ -4,6 +4,60 @@
 //  c++ -DMASTER makernet.cpp -o master && ./master
 //  c++ -DSLAVE makernet.cpp -o slave && ./slave
 
+// This option makes a ton of warnings go away...
+// -std=c++11
+
+
+/********************************************************
+ *
+ * <FILE>
+ *
+ * Part of the Makernet framework by Jeremy Gilbert
+ *
+ * License: GPL 3
+ * See footer for copyright and license details.
+ *
+ ******/
+
+
+/********************************************************
+ *
+ * Copyright (C) 2017 Jeremy Gilbert
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * If GPL 3 does not suit your needs, feel free to contact the author for
+ * alternative licensing arrangements.
+ *
+ ********************************************************/
+
+
+
+
+
+// globals.h
+
+#define HWID_UNASSIGNED 0x0000
+
+#define ADDR_UNASSIGNED 0x00
+#define ADDR_BROADCAST  0xFF
+
+
+
+
+
+// Faking it libraries
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,9 +73,15 @@
 
 uint16_t FAKEHARDWAREID = 0;
 
+// Returns the 16 bit hardware ID. THis can be any value except
+// HWID_UNASSIGNED.
+
 uint16_t getHardwareID()
 {
-	return FAKEHARDWAREID;
+	if ( FAKEHARDWAREID != HWID_UNASSIGNED )
+		return FAKEHARDWAREID;
+	else
+		return FAKEHARDWAREID + 1;
 }
 
 
@@ -102,11 +162,6 @@ boolean Interval::hasPassed()
 
 
 
-
-// globals.h
-
-#define ADDR_UNASSIGNED 0x00
-#define ADDR_BROADCAST  0xFF
 
 // util.h
 
@@ -437,14 +492,14 @@ void _Makernet::initialize()
 _Makernet Makernet;
 
 
-// This structure defines the essential parameters of a device identity. 
+// This structure defines the essential parameters of a device identity.
 
 struct DeviceProfile
-{	
-	bool connected;
-	uint16_t hardwareID;
-	DeviceType deviceType;
-	uint8_t address;
+{
+	bool connected = false;
+	uint16_t hardwareID = HWID_UNASSIGNED;
+	DeviceType deviceType = DeviceType::Unassigned;
+	uint8_t address = ADDR_UNASSIGNED;
 };
 
 
@@ -457,6 +512,9 @@ struct DeviceProfile
 // list of all object instances so that no additional action from the end-user
 // is needed to handle dispatch and discovery. (I learned this pattern from EKT
 // who uses it very effectively in her Modulo framework.)
+//
+// Remember the BasePeripherals are inherently proxy objects. They are OO
+// stand-ins for real network devices.
 
 class BasePeripheral {
 public:
@@ -464,19 +522,29 @@ public:
 	virtual ~BasePeripheral();
 	// Constructor
 	BasePeripheral(DeviceType deviceType);
+	// Configure is called 1x at system configure time by the superclass and
+	// is intended to be overridden
+	virtual void configure();
+
+	// Given a device network description, returns a proxy object if one exists
+	static BasePeripheral *findPeripheralObjectForDevice( DeviceProfile *dp );
+
 	// Look up a peripheral by a device ID
-	static BasePeripheral *findByDeviceID(uint16_t query);
+	// static BasePeripheral *findByDeviceID(uint16_t query);
 
 
 	// Returns the device ID
-	uint16_t getDeviceID();
-	// Configure is called 1x at system configure time by the superclass
-	virtual void configure();
+	// uint16_t getDeviceID();
 
 
-private:
 	// Internal tracking UUID
 	long _uuid;
+
+	// Contains the connection address details
+	DeviceProfile connectedDevice;
+
+private:
+
 	// Internal init handler function
 	void _init();
 
@@ -487,7 +555,7 @@ private:
 
 	DeviceType _deviceType;
 
-	DeviceProfile connectedDevice;
+
 
 	// Linked list of peripherals
 	static BasePeripheral *_firstPeripheral;
@@ -543,6 +611,32 @@ void BasePeripheral::configure()
 }
 
 
+// This function is called by the framework when a connected device requests
+// address assignement. The key variables for the device are loaded into a
+// deviceprofile object and passed to this function which then selects a base
+// peripherals that should handle the connection.
+//
+// In current implementation, preference is given first to objects that
+// previously mapped to this hardware ID, then to device type in general.
+
+BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp )
+{
+	// First look for hardware matches
+
+	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
+		if ( p->connectedDevice.hardwareID !=
+		        dp->hardwareID == p->connectedDevice.hardwareID )
+			return p;
+
+
+	return NULL;
+
+}
+
+
+
+
+
 class EncoderPeripheral : public BasePeripheral {
 public:
 	EncoderPeripheral();
@@ -553,9 +647,7 @@ public:
 EncoderPeripheral::EncoderPeripheral() :
 	BasePeripheral(DeviceType::Encoder)
 {
-
 }
-
 
 
 EncoderPeripheral encoder;
@@ -628,9 +720,13 @@ void Network::loop()
 }
 
 
-// Called when we have a valid packet that is meant for us.
-// From this point on in the stack, we can assume everything
-// about the packet checks out.
+// Called when we have a valid packet that is meant for us. From this point on
+// in the stack, we can assume everything about the packet checks out.
+//
+// Negative return values mean an error. Zero return values mean everything is
+// fine. Positive return values have meaning TBD (could mean a reply is queued
+// in the future.)
+
 
 int Network::routePacket( Packet *p  )
 {
@@ -897,13 +993,13 @@ struct DCSAddressAssignMessage {
 // fields that are managed by the Device Control Service and can  be stored on
 // peripherals or other addressable objects.
 
-struct DeviceDescriptor {
-	uint16_t hardwareID; // immutable hardware ID
-	uint8_t deviceType;
-	uint8_t addresss;
-	bool connected;
-	int generation;
-};
+// struct DeviceDescriptor {
+// 	uint16_t hardwareID; // immutable hardware ID
+// 	uint8_t deviceType;
+// 	uint8_t address;
+// 	bool connected;
+// 	int generation;
+// };
 
 
 
@@ -924,26 +1020,64 @@ struct DeviceDescriptor {
 // will now flow to the address issued completing the link. If the packet is
 // dropped, subsequent REQUEST_ADDRESS requests will re-establish th
 
+
+
+// Holds the next available address if there isn't one already Staring
+// assignment at 0xA0 for ease of identification in packet dumps.
+
+uint8_t nextAddressToVend = 0xA0;
+
+// General incoming packet handler.
+//
+// Negative return values mean an error. Zero return values mean everything is
+// fine. Positive return values have meaning TBD (could mean a reply is queued
+// in the future.)
+
 int DeviceControlService::handlePacket(Packet *p)
 {
-	DLN( "Handle packet");
+	DLN( "DCS: handle packet");
 
 	if ( p->size < 1) {
 		DLN( "Runt packet rejected");
 		return -300;
 	}
 
-	DeviceControlMessage *dm = (DeviceControlMessage *)p;
+
+	DeviceControlMessage *dm = (DeviceControlMessage *)p->payload;
+
+	DLN( dm->command );
+
 
 	if ( dm->command == DCS_REQUEST_ADDRESS ) {
+		DLN( "Req addr");
 		if ( p->size > 1 ) {
-			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)dm->payload;
+			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 			DeviceType type = (DeviceType)msg->deviceType;
 			DPF( "Assign address for type [%d]", type );
+			DLN();
 			if ( Makernet.network.role == Network::master ) {
-				DeviceDescriptor dd;
-				dd.hardwareID = 0; //TODO
-				dd.deviceType = msg->deviceType;
+				DeviceProfile dd;
+				dd.hardwareID = (uint16_t)msg->hardwareID_H << 8 | (uint16_t)msg->hardwareID_L;
+				dd.deviceType = (DeviceType)msg->deviceType;
+				BasePeripheral *proxy = BasePeripheral::findPeripheralObjectForDevice( &dd );
+				if ( proxy == NULL ) {
+					DPR( "No proxy BasePeripheral found, dropping packet" );
+					return 0;
+				}
+				if ( proxy->connectedDevice.address == ADDR_UNASSIGNED ) {
+					DPF( "Assinging new address [%d] to uuid [%ld]", nextAddressToVend, proxy->_uuid );
+					DLN();
+					proxy->connectedDevice.address = nextAddressToVend++;
+				}
+				proxy->connectedDevice.hardwareID = dd.hardwareID;
+				proxy->connectedDevice.connected = 1;
+
+				DPF( "Link established uuid=[%ld] addr=[%d] hardwareid=[%x]\n",
+				     proxy->_uuid,
+				     proxy->connectedDevice.address,
+				     proxy->connectedDevice.hardwareID
+				   );
+
 
 			}
 
@@ -1298,7 +1432,7 @@ int main(void)
 		// long long end = getMicrosecondTime();
 
 		updateMicrosecondCounter();
-		printf( "took %lld\n", millis() );
+		printf( "took %u\n", millis() );
 	}
 
 }
