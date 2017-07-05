@@ -1237,6 +1237,11 @@ ThunkMessage thunk;
 int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 {
 
+	if (send(sock, &len, 1, 0) == -1) {
+		perror("send");
+		exit(1);
+	}
+
 	if (send(sock, inBuffer, len, 0) == -1) {
 		perror("send");
 		exit(1);
@@ -1254,6 +1259,12 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 	// signature.
 
 	if ( Makernet.network.role == Network::master ) {
+		int len = sizeof( thunk );
+		
+		if (send(sock, &len, 1, 0) == -1) {
+			perror("send");
+			exit(1);
+		}
 		if ( send(sock, (uint8_t *)&thunk, 5, 0) == -1 ) {
 			perror("send");
 			exit(1);
