@@ -1111,8 +1111,7 @@ int DeviceControlService::handlePacket(Packet *p)
 
 int DeviceControlService::pollPacket(Packet *p)
 {
-	DLN( "Within pollPacket at DCS");
-
+	// Generate the general poll messages if I am the master
 
 	if ( Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
@@ -1125,7 +1124,10 @@ int DeviceControlService::pollPacket(Packet *p)
 			return 1;
 		}
 
-	if ( Makernet.network.role == Network::slave && Makernet.network.address == ADDR_UNASSIGNED )
+	// If I'm a device waiting for an address assignment, generate a request
+
+	if ( Makernet.network.role == Network::slave &&
+	        Makernet.network.address == ADDR_UNASSIGNED )
 		if ( pollingTimer.hasPassed() )
 		{
 			DLN( "Time for a request packet!");
@@ -1133,14 +1135,10 @@ int DeviceControlService::pollPacket(Packet *p)
 			p->destPort = 0;
 			p->size = sizeof( DCSAddressRequestMessage );
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
-
-
-
 			msg->command = DCS_REQUEST_ADDRESS;
 			msg->deviceType = (uint8_t)Makernet.deviceType;
 			msg->hardwareID_H = 0x31;
 			msg->hardwareID_L = 0x14;
-
 
 			return 1;
 		}
@@ -1152,8 +1150,6 @@ void DeviceControlService::loop()
 {
 // DLN( "Time for a polling packet!");
 
-
-
 }
 
 
@@ -1163,20 +1159,8 @@ void DeviceControlService::loop()
 
 
 
-// UnixMaster implementes a Datalink layer for the UNIX testbed.
-
-
-
-// Our callers can use this to set a callback when a new frame is received
-
-// void Datalink::onReceive( frameReceiveCallback_t t )
-// {
-// 	frameReceiveCallback = t;
-// }
-
-// An implementation of UNIX domain socket master
-
-
+// UnixMaster implements a Datalink layer for the UNIX testbed. This code is
+// not intended to run on MCUs so needs an #if statement surround it.
 
 class UnixMaster : public Datalink {
 public:
@@ -1192,15 +1176,13 @@ private:
 	struct sockaddr_un remote;
 	int sock;
 
+	// Buffer for the user command line 
 	char userCommandBuffer[1000];
 	char *bpos = userCommandBuffer;
-
-
 };
 
 
 #define SOCK_PATH "/tmp/echo_socket"
-
 
 void UnixMaster::initialize()
 {
@@ -1290,10 +1272,7 @@ void UnixMaster::processIncomingFrame()
 		exit(1);
 	}
 
-
-	DPF( "Frame len:[%d]\n", frameLen );
-
-
+//	DPF( "Frame len:[%d]\n", frameLen );
 
 	if ((t = recv(sock, frameBuffer, frameLen, MSG_WAITALL)) > 0) {
 		frameBuffer[t] = '\0';
@@ -1304,7 +1283,7 @@ void UnixMaster::processIncomingFrame()
 		hexPrint( frameBuffer, t );
 		DLN();
 
-		// now check for the master broadcast "thunk". This emulation is only
+		// Intercept a master broadcast "thunk". This emulation is only
 		// handled in cases where we are pretending to be a master/slave
 		// network and the thunk triggers the poll.
 
@@ -1318,21 +1297,16 @@ void UnixMaster::processIncomingFrame()
 					frameBuffer[i] = 0;
 
 				int n = Makernet.network.pollFrame( frameBuffer, n );
-
 				if ( n > 0 )
 					sendFrame( frameBuffer, n );
 
 				return;
 			}
 
-
 		// Dispatch the frame up to the higher levels of the network
 
 		if ( t > 0 )
 			Makernet.network.handleFrame( frameBuffer, t );
-
-
-
 	} else {
 		if (t < 0)
 			perror("recv");
@@ -1388,111 +1362,6 @@ int UnixMaster::loop()
 			processIncomingFrame();
 	}
 }
-
-
-
-
-class UnixSlave : public Datalink {
-public:
-	virtual void initialize();
-	virtual int sendFrame( uint8_t *inBuffer, uint8_t len );
-	void loop();
-private:
-	struct sockaddr_un local, remote;
-	int sock;
-	uint8_t receiveBuffer[MAX_MAKERNET_FRAME_LENGTH];
-
-};
-
-
-void UnixSlave::initialize()
-{
-
-	int len;
-
-	char str[100];
-
-	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-		perror("socket");
-		exit(1);
-	}
-
-	local.sun_family = AF_UNIX;
-	strcpy(local.sun_path, SOCK_PATH);
-	unlink(local.sun_path);
-	len = strlen(local.sun_path) + sizeof(local.sun_family);
-	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
-		perror("bind");
-		exit(1);
-	}
-
-	if (listen(sock, 5) == -1) {
-		perror("listen");
-		exit(1);
-	}
-}
-
-int UnixSlave::sendFrame( uint8_t *inBuffer, uint8_t len )
-{
-	return -1000;
-}
-
-void UnixSlave::loop()
-{
-	int t, s2;
-	int done, n;
-	printf("Waiting for a connection...\n");
-	t = sizeof(remote);
-	if ((s2 = accept(sock, (struct sockaddr *)&remote, (socklen_t *)&t)) == -1) {
-		perror("accept");
-		exit(1);
-	}
-
-	printf("<<<< Inbound transaction\n");
-
-	done = 0;
-	do {
-		n = recv(s2, frameBuffer, MAX_MAKERNET_FRAME_LENGTH, 0);
-		if (n <= 0) {
-			if (n < 0) perror("recv");
-			done = 1;
-		}
-
-		DPR( ">>>> (" );
-		DPR( n );
-		DPR( ") ");
-		hexPrint( frameBuffer, n );
-		DLN();
-
-		updateMicrosecondCounter();
-
-		Makernet.network.handleFrame( frameBuffer, n );
-
-
-		for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ )
-			frameBuffer[i] = 0;
-
-		n = Makernet.network.pollFrame( frameBuffer, n );
-
-
-		if (!done)
-			if (send(s2, frameBuffer, n, 0) < 0) {
-				perror("send");
-				done = 1;
-			}
-
-		DPR( "<<<< (" );
-		DPR( n );
-		DPR( ") ");
-		hexPrint( frameBuffer, n );
-		DLN();
-
-	} while (!done);
-
-	close(s2);
-}
-
-
 
 
 
