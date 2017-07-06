@@ -43,6 +43,33 @@
  ********************************************************/
 
 
+#define dDATALINK     1 << 1
+#define dNETWORK      1 << 2
+#define dSERVICE      1 << 3
+#define dDCS 	      1 << 4
+#define dERROR        1 << 5
+#define dOBJFRAMEWORK 1 << 6
+#define dWARNING      1 << 7
+#define dALL          0xFFFFFFFF
+
+
+
+#define DEBUGLEVEL dNETWORK
+
+
+// The following three macros are found throughout the code and implement an
+// exceptionally lightweight conditional debugging. When the DEBUGLEVEL mask
+// is set to 0, the C++ compiler will strip these statements out entirely from
+// the generated code thus ZERO overhead.
+//
+// DPR = print a single value
+// DLN = print a single value with a newline
+// DPF = printf 
+
+#define DPR( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { printDebug( X ); }
+#define DLN( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
+#define DPF( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
+#define HPR( mask, ptr, size )		   if( (mask & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }
 
 
 
@@ -166,9 +193,6 @@ boolean Interval::hasPassed()
 // util.h
 
 #define UI8(x) static_cast<uint8_t>(x)
-#define DPR( X... )			   printDebug( X )
-#define DLN( X... )			   printDebugln( X )
-#define DPF( X... )			   { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
 #define MAX(x,y) x > y ? x : y;
 #define MIN(x,y) x > y ? y : x;
 
@@ -246,14 +270,14 @@ void printDebugln( int i )
 
 #endif
 
-void hexPrint( uint8_t *buffer, int size )
+inline void hexPrint( int mask, uint8_t *buffer, int size )
 {
 	for ( int i = 0 ; i < size ; i++ ) {
 		uint8_t value = buffer[i];
 		if (value < 0x10)
-			DPR("0");
-		DPR(value, HEX);
-		DPR( " " );
+			DPR(mask, "0");
+		DPR(mask, value, HEX);
+		DPR(mask, " " );
 	}
 }
 
@@ -485,7 +509,7 @@ Network::Network() {
 
 void _Makernet::initialize()
 {
-	DLN( "**** Makernet framwork init");
+	DLN( dOBJFRAMEWORK, "**** Makernet framwork init");
 	generation = random();
 	hardwareID = getHardwareID();
 	network.initialize();
@@ -585,11 +609,10 @@ BasePeripheral::BasePeripheral(DeviceType deviceType) :
 
 
 void BasePeripheral::_init() {
-	DPR( "Init called, object uuid=");
-	DPR( _uuid, HEX );
-	DPR( "  Type:");
-	//DPR( _deviceType );
-	DLN();
+	DPR( dOBJFRAMEWORK, "Init called, object uuid=");
+	DPR( dOBJFRAMEWORK, _uuid, HEX );
+	DPR( dOBJFRAMEWORK, "  Type:");
+	DLN( dOBJFRAMEWORK, );
 
 	configure();
 }
@@ -610,7 +633,7 @@ BasePeripheral::~BasePeripheral() {
 
 void BasePeripheral::configure()
 {
-	DLN( "Default BasePeripheral::configure() called");
+	DLN( dOBJFRAMEWORK, "Default BasePeripheral::configure() called");
 }
 
 
@@ -694,7 +717,7 @@ int Network::sendNextPacket()
 			if ( s->pollPacket(p) > 0 ) {
 				int r = sendPacket( p );
 				if ( r < 0 ) {
-					DPR( "sendPacket had error:");
+					DPR( dNETWORK|dERROR, "sendPacket had error:");
 					DLN( r );
 
 
@@ -715,7 +738,7 @@ int Network::sendNextPacket()
 void Network::loop()
 {
 // 	DLN( "--- Network Loop ---");
-	DPF( "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
+	DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
 
 	// Give all services a loop() opportunity
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
@@ -754,25 +777,25 @@ int Network::routePacket( Packet *p  )
 
 	if ( retVal > 0 )
 	{
-		DPR( "Route: Immediate packet sendback!" );
+		DPR( dNETWORK, "Route: Immediate packet sendback!" );
 		if ( Makernet.network.role == Network::slave )
-			DPR( "WARNING: Untested code path!");
+			DPR( dALL, "WARNING: Untested code path!");
 		int retValSend = sendPacket( p );
 		if ( retValSend < 0 )
 		{
-			DPR( "Route: Immediate packet sendback failed, err=" );
-			DPR( retValSend );
-			DLN();
+			DPR( dNETWORK|dERROR, "Route: Immediate packet sendback failed, err=" );
+			DPR( dNETWORK|dERROR, retValSend );
+			DLN( dNETWORK|dERROR );
 			return retValSend;
 		}
 		return 0;
 	}
 
-	if( retVal < 0 )
+	if ( retVal < 0 )
 	{
-		DPR( "Route: Exception on handlePacket: ");
-		DPR( retVal );
-		DLN();
+		DPR( dNETWORK|dERROR, "Route: Exception on handlePacket: ");
+		DPR( dNETWORK|dERROR, retVal );
+		DLN( dNETWORK|dERROR, );
 	}
 
 	return retVal;
@@ -801,38 +824,38 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	Packet *mp = (Packet *)buffer;
 
 	if (!((mp->dest == ADDR_BROADCAST) or (address == ADDR_UNASSIGNED) or (address == mp->dest ))) {
-		DLN( "Dropping packet not for us");
+		DLN( dNETWORK|dWARNING, "Dropping packet not for us");
 		return;
 	}
 
 	if ( mp->destPort < 0 or mp->destPort >= NUM_PORTS ) {
-		DLN( "Dropping invalid packet port.");
+		DLN( dNETWORK|dERROR, "Dropping invalid packet port.");
 		return;
 	}
 
 	if ( mp->size < 0 or mp->size >= MAX_MAKERNET_FRAME_LENGTH - 1 - sizeof(Packet) ) {
-		DPR( "Dropping invalid sized packet.");
+		DPR( dNETWORK|dERROR, "Dropping invalid sized packet.");
 		return;
 	}
 
-	DPF( "%%%%%%%% Inbound packet dest=[%i] src=[%i] dPort=[%i] size=[%i]\n",
+	DPF( dNETWORK, "%%%%%%%% Inbound packet dest=[%i] src=[%i] dPort=[%i] size=[%i]",
 	     mp->dest, mp->src, mp->destPort, mp->size );
-	DLN();
+	DLN( dNETWORK );
 
 	// Verify checksum
 	uint8_t calculatedCRC = calculateCRC(0, buffer, len - 1 );
 	uint8_t presentedCRC = buffer[len - 1];
 
 	if ( calculatedCRC != presentedCRC ) {
-		DPF( "%%%%%%%% CRC check failed: (%x) vs (%x), frame dropped\n", calculatedCRC, presentedCRC );
+		DPF( dNETWORK, "%%%%%%%% CRC check failed: (%x) vs (%x), frame dropped\n", calculatedCRC, presentedCRC );
 		return;
 	}
 
 	int s = routePacket( mp );
 	if ( s < 0 ) {
-		DPR( "Frame failed to route, err=" );
-		DPR( s );
-		DLN();
+		DPR( dNETWORK|dERROR, "Frame failed to route, err=" );
+		DPR( dNETWORK|dERROR, s );
+		DLN( dNETWORK|dERROR );
 	}
 
 
@@ -860,14 +883,14 @@ int Network::pollFrame( uint8_t *buffer, uint8_t len )
 				if ( finalRetValue > 0 )
 					return finalRetValue;
 				else {
-					DPR( "Return packet failed to finalize: err");
-					DPR( finalRetValue );
-					DLN();
+					DPR( dNETWORK|dERROR, "Return packet failed to finalize: err");
+					DPR( dNETWORK|dERROR, finalRetValue );
+					DLN( dNETWORK|dERROR, );
 				}
 			}
 			else if ( pollRetValue < 0) {
-				DPR( "pollPacket returned negative?? Something wrong");
-				DLN();
+				DPR( dNETWORK|dERROR, "pollPacket returned negative?? Something wrong");
+				DLN( dNETWORK|dERROR );
 			}
 		}
 	}
@@ -916,9 +939,6 @@ int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uin
 
 int Network::finalizePacketToFrame( Packet *p )
 {
-
-	DPF( "Size = %d\n", p->size );
-
 	if ( p == NULL )
 		return -3000;
 
@@ -933,16 +953,13 @@ int Network::finalizePacketToFrame( Packet *p )
 	// Crc the header
 	int crc = calculateCRC( 0, (uint8_t *)p, sizeof( Packet ) );
 
+	// Crc the packet contents
 	uint8_t *payloadPtr = p->payload;
-
 	for ( int i = 0 ; i < size ; i++ ) {
 		crc = crc8_ccitt_update( crc, payloadPtr[i] );
 	}
 
 	payloadPtr[size] = crc;
-
-	DLN("finalize complete..");
-
 
 	return sizeof( Packet ) + p->size + 1;
 }
@@ -952,7 +969,7 @@ int Network::finalizePacketToFrame( Packet *p )
 int Network::sendPacket( Packet *p )
 {
 	if ( Makernet.network.role != master ) {
-		DLN( "Internal consistency issue! Non-master tried to send a unrequested packet");
+		DLN( dOBJFRAMEWORK|dERROR, "Internal consistency issue! Non-master tried to send a unrequested packet");
 		return -1000;
 	}
 
@@ -967,7 +984,7 @@ int Network::sendPacket( Packet *p )
 int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, uint8_t *payload)
 {
 	if ( address == ADDR_UNASSIGNED ) {
-		DPR( "ASSERT: Address not configured");
+		DPR( dOBJFRAMEWORK|dERROR, "ASSERT: Address not configured");
 		return -1;
 	}
 
@@ -1085,43 +1102,43 @@ int DeviceControlService::handlePacket(Packet *p)
 {
 
 	if ( p->size < 1) {
-		DLN( "Runt packet rejected");
+		DLN( dDCS|dERROR, "Runt packet rejected");
 		return -300;
 	}
 
 
 	DeviceControlMessage *dm = (DeviceControlMessage *)p->payload;
 
-	DPR( "DCS: handle packet, cmd=");
-	DLN( dm->command );
+	DPR( dDCS, "DCS: handle packet, cmd=");
+	DLN( dDCS, dm->command );
 
 	if ( dm->command == DCS_REQUEST_ADDRESS && Makernet.network.role == Network::master ) {
-		DLN( "Req addr");
+		DLN( dDCS, "DCS: Req addr");
 		if ( p->size > 1 ) {
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 			DeviceType type = (DeviceType)msg->deviceType;
-			DPF( "Assign address for type [%d]", type );
-			DLN();
+			DPF( dDCS, "Assign address for type [%d]", type );
+			DLN( dDCS );
 			if ( Makernet.network.role == Network::master ) {
 				DeviceProfile dd;
 				dd.hardwareID = (uint16_t)msg->hardwareID_H << 8 | (uint16_t)msg->hardwareID_L;
 				dd.deviceType = (DeviceType)msg->deviceType;
 				BasePeripheral *proxy = BasePeripheral::findPeripheralObjectForDevice( &dd );
 				if ( proxy == NULL ) {
-					DPR( "No proxy BasePeripheral found, dropping packet" );
+					DPR( dDCS|dWARNING, "No proxy BasePeripheral found, dropping packet" );
 					return 0;
 				}
 				int newAddress = proxy->connectedDevice.address;
 				if ( newAddress == ADDR_UNASSIGNED ) {
-					DPF( "Assigning new address [%d] to uuid [%ld]", nextAddressToVend, proxy->_uuid );
-					DLN();
+					DPF( dDCS, "Assigning new address [%d] to uuid [%ld]", nextAddressToVend, proxy->_uuid );
+					DLN( dDCS );
 					newAddress = nextAddressToVend++;
 				}
 				proxy->connectedDevice.address = newAddress;
 				proxy->connectedDevice.hardwareID = dd.hardwareID;
 				proxy->connectedDevice.connected = 1;
 
-				DPF( "Link established uuid=[%ld] addr=[%d] hardwareid=[%x]\n",
+				DPF( dDCS, "Link established uuid=[%ld] addr=[%d] hardwareid=[%x]\n",
 				     proxy->_uuid,
 				     proxy->connectedDevice.address,
 				     proxy->connectedDevice.hardwareID
@@ -1152,34 +1169,29 @@ int DeviceControlService::handlePacket(Packet *p)
 
 
 	if ( dm->command == DCS_ASSIGN_ADDRESS and
-		 Makernet.network.role == Network::slave and
-		 Makernet.network.address == ADDR_UNASSIGNED ) {
+	        Makernet.network.role == Network::slave and
+	        Makernet.network.address == ADDR_UNASSIGNED ) {
 
-		if( p->size < sizeof(DCSAddressAssignMessage) )
+		if ( p->size < sizeof(DCSAddressAssignMessage) )
 			return 0;
-
-
-	DLN( "here");
 
 		DCSAddressAssignMessage *msg = (DCSAddressAssignMessage *)p->payload;
 
 		uint16_t hardwareID = (uint16_t)msg->hardwareID_H << 8 | (uint16_t)msg->hardwareID_L;
 
-		if( hardwareID != Makernet.hardwareID )
+		if ( hardwareID != Makernet.hardwareID )
 			return 0;
 
 		uint8_t newAddress = msg->address;
 
-		 DPR( "DCS: Accepting assignment of address=" );
-		 DPR( newAddress );
+		DPR( dDCS, "DCS: Accepting assignment of address=" );
+		DPR( dDCS, newAddress );
+		DLN( dDCS );
 
-		 Makernet.network.address = newAddress;
+		Makernet.network.address = newAddress;
 
 		return 0;
 	}
-
-
-
 	return 0;
 }
 
@@ -1191,7 +1203,7 @@ int DeviceControlService::pollPacket(Packet *p)
 	if ( Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( "Time for a polling packet!");
+			DLN( dDCS, "Time for a polling packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = 1;
@@ -1205,15 +1217,15 @@ int DeviceControlService::pollPacket(Packet *p)
 	        Makernet.network.address == ADDR_UNASSIGNED )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( "Time for a request packet!");
+			DLN( dDCS, "Time for a request packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = sizeof( DCSAddressRequestMessage );
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 			msg->command = DCS_REQUEST_ADDRESS;
 			msg->deviceType = (uint8_t)Makernet.deviceType;
-				msg->hardwareID_H = (uint8_t)(Makernet.hardwareID >> 8);
-				msg->hardwareID_L = (uint8_t)(Makernet.hardwareID);
+			msg->hardwareID_H = (uint8_t)(Makernet.hardwareID >> 8);
+			msg->hardwareID_L = (uint8_t)(Makernet.hardwareID);
 
 			return 1;
 		}
@@ -1271,7 +1283,7 @@ void UnixMaster::initialize()
 		exit(1);
 	}
 
-	printf("Trying to connect...\n");
+	DLN( dDATALINK, "Trying to connect...");
 
 	remote.sun_family = AF_UNIX;
 	strcpy(remote.sun_path, SOCK_PATH);
@@ -1281,7 +1293,7 @@ void UnixMaster::initialize()
 		exit(1);
 	}
 
-	printf("Connected.\n");
+	DLN( dDATALINK, "Connected.");
 
 }
 
@@ -1304,16 +1316,16 @@ int UnixMaster::sendFrame( uint8_t *inBuffer, uint8_t len )
 		exit(1);
 	}
 
-	DPR( "<<<< (" );
-	DPR( len );
-	DPR( ") ");
-	hexPrint( inBuffer, len );
-	DLN();
+	DPR( dDATALINK, "<<<< (" );
+	DPR( dDATALINK, len );
+	DPR( dDATALINK, ") ");
+	hexPrint( dDATALINK, inBuffer, len );
+	DLN( dDATALINK );
 
-	// If we are a master, we need to emulate the idea of opening the bus for
-	// responses the same way that I2C works when the master holds the clock
-	// line after its finished sending. This happens by emitting a 5 byte FF
-	// signature.
+	// Emit the "thunk". If we are a master, we need to emulate the idea of
+	// opening the bus for responses the same way that I2C works when the
+	// master holds the clock line after its finished sending. This happens by
+	// emitting a 5 byte FF signature.
 
 	if ( Makernet.network.role == Network::master ) {
 		int len = sizeof( thunk );
@@ -1352,11 +1364,11 @@ void UnixMaster::processIncomingFrame()
 	if ((t = recv(sock, frameBuffer, frameLen, MSG_WAITALL)) > 0) {
 		frameBuffer[t] = '\0';
 
-		DPR( ">>>> (" );
-		DPR( t );
-		DPR( ") ");
-		hexPrint( frameBuffer, t );
-		DLN();
+		DPR( dDATALINK, ">>>> (" );
+		DPR( dDATALINK, t );
+		DPR( dDATALINK, ") ");
+		hexPrint( dDATALINK, frameBuffer, t );
+		DLN( dDATALINK );
 
 		// Intercept a master broadcast "thunk". This emulation is only
 		// handled in cases where we are pretending to be a master/slave
@@ -1365,9 +1377,6 @@ void UnixMaster::processIncomingFrame()
 		if ( t == 5 and Makernet.network.role == Network::slave )
 			if ( memcmp( &thunk, frameBuffer, 5) == 0 )
 			{
-				DPR( "Thunk received!!!");
-				DLN();
-
 				for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ )
 					frameBuffer[i] = 0;
 
@@ -1427,7 +1436,7 @@ int UnixMaster::loop()
 			printf( "**** read from STDIN: [%d] bytes\n", r );
 			bpos += r;
 			if ( handleSTDIN( userCommandBuffer, bpos - userCommandBuffer )) {
-				DLN( "reset" );
+				// DLN( dDATALINK, "reset" );
 				bpos = userCommandBuffer;
 			}
 		}
@@ -1498,7 +1507,7 @@ int main(void)
 	while (1)
 	{
 		um.loop();
-		//Makernet.network.loop();
+		Makernet.network.loop();
 		updateMicrosecondCounter();
 	}
 
