@@ -337,6 +337,8 @@ struct Packet : public PacketHeader {
 
 // A mailbox represents an extremely flexible place where values can be set
 // and get. Any time a mailbox is set, it triggers a push to a remote mailbox.
+// Remote mailboxes can easily
+
 // The mailbox object represents a single one of these item places, and
 // Mailbox is the abstract interface thus lacks any implementation.
 //
@@ -348,6 +350,7 @@ struct Packet : public PacketHeader {
 // black box, to another Mailbox object which then applies the changes and
 // brings the items in sync.
 //
+// The Mailbox and MailboxDictionary framework has no concept of a connection
 
 
 class Mailbox {
@@ -528,12 +531,12 @@ void SmallMailbox::setLong( uint32_t v )
 	synchronized = 0;
 
 
-		DPR( dMAILBOX, "&&&& MailboxChange: [");
-		DPR( dMAILBOX, description );
-		DPR( dMAILBOX, "] set to: [");
-		hexPrint( dMAILBOX, contents, 4 );
-		DLN( dMAILBOX, "]");
-	
+	DPR( dMAILBOX, "&&&& MailboxChange: [");
+	DPR( dMAILBOX, description );
+	DPR( dMAILBOX, "] set to: [");
+	hexPrint( dMAILBOX, contents, 4 );
+	DLN( dMAILBOX, "]");
+
 }
 
 uint32_t SmallMailbox::getLong()
@@ -642,8 +645,8 @@ int MailboxDictionary::handleAckPacket( uint8_t *buffer, uint8_t size )
 
 void MailboxDictionary::configure()
 {
-	
-		DLN( dMAILBOX|dWARNING, "*** WARNING - MAILBOX BASE CONFIGURE CALLED, NO MAILBOXES SET UP");
+
+	DLN( dMAILBOX | dWARNING, "*** WARNING - MAILBOX BASE CONFIGURE CALLED, NO MAILBOXES SET UP");
 	return;
 }
 
@@ -997,6 +1000,21 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 }
 
 
+// This is a subclass of the mailbox dictionary. Every peripheral should have
+// one so that the mailbox configuration is constant between the peripheral
+// code and the object host code. To use it, create member variables for each
+// mailbox that could handle values. Then wire them up in the configure()
+// function of the implementation.
+
+class EncoderMailboxDictionary : public MailboxDictionary {
+public:
+	virtual void configure();
+	SmallMailbox position   = SmallMailbox(DEVICE, "Encoder position");
+	SmallMailbox buttonDown = SmallMailbox(DEVICE, "Button down");
+	SmallMailbox buttonUp   = SmallMailbox(DEVICE, "Button up");
+};
+
+
 
 
 
@@ -1004,8 +1022,24 @@ class EncoderPeripheral : public BasePeripheral {
 public:
 	EncoderPeripheral();
 
+	EncoderMailboxDictionary encoderDictionary;
 
 };
+
+
+
+
+
+
+void EncoderMailboxDictionary::configure()
+{
+	
+		DPR( dANY, "Configuring encoder dictionary...");
+	set(0, position);
+	set(1, buttonDown);
+	set(2, buttonUp);
+}
+
 
 EncoderPeripheral::EncoderPeripheral() :
 	BasePeripheral(DeviceType::Encoder)
