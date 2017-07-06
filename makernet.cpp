@@ -51,6 +51,7 @@
 #define dOBJFRAMEWORK 1 << 6
 #define dWARNING      1 << 7
 #define dSTATUSMSG      1 << 8
+#define dMAILBOX      1 << 9
 #define dALL          0xFFFFFFFF
 
 
@@ -59,18 +60,18 @@
 
 
 // The following three macros are found throughout the code and implement an
-// exceptionally lightweight conditional debugging. When the DEBUGLEVEL mask
-// is set to 0, the C++ compiler will strip these statements out entirely from
-// the generated code thus ZERO overhead.
+// exceptionally lightweight conditional debugging framwork. When the
+// DEBUGLEVEL mask is set to 0, the C++ compiler will strip these statements
+// out entirely from the generated code thus creating ZERO overhead.
 //
 // DPR = print a single value
 // DLN = print a single value with a newline
 // DPF = printf
 
-#define DPR( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { printDebug( X ); }
-#define DLN( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
-#define DPF( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
-#define HPR( mask, ptr, size )		   if( (mask & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }
+#define DPR( mask, X... )	    if( (mask & DEBUGLEVEL) > 0 ) { printDebug( X ); }
+#define DLN( mask, X... )	    if( (mask & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
+#define DPF( mask, X... )	    if( (mask & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
+#define HPR( mask, ptr, size )  if( (mask & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }
 
 
 
@@ -80,9 +81,6 @@
 
 #define ADDR_UNASSIGNED 0x00
 #define ADDR_BROADCAST  0xFF
-
-
-
 
 
 // Faking it libraries
@@ -178,10 +176,6 @@ boolean Interval::hasPassed()
 	}
 	return 0;
 }
-
-
-
-
 
 
 
@@ -337,10 +331,333 @@ struct Packet : public PacketHeader {
 
 
 
-// struct DeviceControlMessage : Packet {
 
 
-// };
+#define MAILBOX_OP_FOURBYTE_DEFINITIVE 0x10
+
+// A mailbox represents an extremely flexible place where values can be set
+// and get. Any time a mailbox is set, it triggers a push to a remote mailbox.
+// The mailbox object represents a single one of these item places, and
+// Mailbox is the abstract interface thus lacks any implementation.
+//
+// The mailbox framework is a general purpose tool that is completely agnostic
+// to packet or frame formats. It could easily exist outside of Makernet. The
+// core interface to this "network agnostic" is that its caller will poll it
+// for changes, and provide it a place to create a new message of its own
+// format. The caller transports that message, treating the contents like a
+// black box, to another Mailbox object which then applies the changes and
+// brings the items in sync.
+//
+
+
+class Mailbox {
+public:
+	uint8_t *contents;
+	const char *description;
+	uint8_t size;
+	uint8_t synchronized;
+
+	uint8_t flags;
+
+	virtual void reset();
+	virtual void trigger() = 0;
+	virtual int prepareUpdatePacket( uint8_t *buffer, int size ) = 0;
+	virtual int handleUpdatePacket( uint8_t *buffer, int size ) = 0;
+	virtual int handleAckPacket( uint8_t *buffer, int size ) = 0;
+	virtual int hasPendingChanges() = 0;
+};
+
+
+
+// Small mailbox is an implementation of a mailbox of a small number of bytes
+// like an RGB value or an integer.  It always uses opcode 0 to update
+// (transmission of whole value) and it doesn't worry about version numbers.
+
+#define MAILBOX_SMALLFORMAT_SIZE 4
+
+class SmallMailbox : public Mailbox {
+
+public:
+	SmallMailbox(uint8_t configFlags, const char *d);
+	uint8_t __contents[4];
+
+	virtual void reset();
+	virtual void trigger();
+	virtual int prepareUpdatePacket( uint8_t *buffer, int size );
+	virtual int handleUpdatePacket( uint8_t *buffer, int size );
+	virtual int handleAckPacket( uint8_t *buffer, int size );
+	virtual int hasPendingChanges();
+	void setLong( uint32_t v );
+	uint32_t getLong();
+};
+
+// MailboxDictionary implements an array of Mailbox objects and acts as a
+// supervisor to each "entry".  The mailbox dictionary uses the same "network
+// agnostic" calling interface as a mailbox object. The caller is expected to
+// periodically call it for updates, then transmit the packet messages
+// unchanged to the remote server where those changes will be applied.
+
+#define MAX_DICT_ENTRIES 16
+
+class MailboxDictionary {
+public:
+	MailboxDictionary();
+	virtual void configure();
+	Mailbox *mailboxes[MAX_DICT_ENTRIES];
+	void set( int index, Mailbox& m );
+	Mailbox *get( int index );
+	int hasPendingChanges();
+	Mailbox* nextMailboxWithChanges();
+	int nextPendingMailboxIndex();
+	int prepareUpdatePacket( uint8_t *buffer, uint8_t size );
+	int handleUpdatePacket( uint8_t *buffer, uint8_t size );
+	int handleAckPacket( uint8_t *buffer, uint8_t size );
+
+};
+
+
+
+
+
+
+void Mailbox::reset()
+{
+	// firstInvalidByte = 0;
+	// lastInvalidByte = size;
+	// version++;
+	synchronized = 1;
+	if ( contents != NULL and size > 0 )
+		memset( contents, 0, size ) ;
+}
+
+SmallMailbox::SmallMailbox(uint8_t configFlags, const char *d)
+{
+	contents = __contents;
+	flags = configFlags;
+	size = 4;
+	description = d;
+	reset();
+}
+
+void SmallMailbox::reset()
+{
+	Mailbox::reset();
+}
+
+void SmallMailbox::trigger()
+{
+	synchronized = 0;
+}
+
+int SmallMailbox::hasPendingChanges()
+{
+	return !synchronized;
+}
+
+
+int SmallMailbox::prepareUpdatePacket( uint8_t *buffer, int size )
+{
+	if ( size < MAILBOX_SMALLFORMAT_SIZE + 2 )
+		return -1;
+	if ( buffer == NULL )
+		return -2;
+
+	buffer[0] = MAILBOX_OP_FOURBYTE_DEFINITIVE;
+	buffer[1] = contents[0];
+	buffer[2] = contents[1];
+	buffer[3] = contents[2];
+	buffer[4] = contents[3];
+
+	return 5;
+}
+
+int SmallMailbox::handleAckPacket( uint8_t *buffer, int size )
+{
+	if ( size < 1)
+		return -1;
+	if ( buffer == NULL )
+		return -2;
+
+	if ( buffer[0] == MAILBOX_OP_FOURBYTE_DEFINITIVE ) {
+		synchronized = 1;
+	}
+
+
+	DLN( dMAILBOX, "Ack received for mailbox!");
+
+	return 0;
+}
+
+int SmallMailbox::handleUpdatePacket( uint8_t *buffer, int size )
+{
+	if ( size < 5)
+		return -1;
+	if ( buffer == NULL )
+		return -2;
+
+	if ( buffer[0] != MAILBOX_OP_FOURBYTE_DEFINITIVE )
+		return -3;
+
+	contents[0] = (uint8_t)(buffer[1]);
+	contents[1] = (uint8_t)(buffer[2]);
+	contents[2] = (uint8_t)(buffer[3]);
+	contents[3] = (uint8_t)(buffer[4]);
+	synchronized = 1;
+
+	// Populate response
+
+	buffer[0] = MAILBOX_OP_FOURBYTE_DEFINITIVE;
+
+	DLN( dMAILBOX, "New value received for mailbox!");
+
+	DPR( dMAILBOX, "&&&& MailboxChange: [");
+	DPR( dMAILBOX, description );
+	DPR( dMAILBOX, "] updated over network to: [");
+	hexPrint( dMAILBOX, contents, 4 );
+	DLN( dMAILBOX, "]");
+
+	return 1;
+}
+
+void SmallMailbox::setLong( uint32_t v )
+{
+	contents[0] = (uint8_t)(v >> 24);
+	contents[1] = (uint8_t)(v >> 16);
+	contents[2] = (uint8_t)(v >> 8);
+	contents[3] = (uint8_t)(v);
+	synchronized = 0;
+
+
+		DPR( dMAILBOX, "&&&& MailboxChange: [");
+		DPR( dMAILBOX, description );
+		DPR( dMAILBOX, "] set to: [");
+		hexPrint( dMAILBOX, contents, 4 );
+		DLN( dMAILBOX, "]");
+	
+}
+
+uint32_t SmallMailbox::getLong()
+{
+	return ( (((uint32_t)contents[0]) << 24 ) |
+	         (((uint32_t)contents[1]) << 16 ) |
+	         (((uint32_t)contents[2]) << 8  ) |
+	         (((uint32_t)contents[3]) ) );
+}
+
+MailboxDictionary::MailboxDictionary()
+{
+	for (int i = 0 ; i < MAX_DICT_ENTRIES ; i++ )
+		mailboxes[i] = NULL;
+}
+
+
+void MailboxDictionary::set( int index, Mailbox& m )
+{
+	if ( index < MAX_DICT_ENTRIES )
+		mailboxes[index] = &m;
+}
+
+Mailbox *MailboxDictionary::get( int index )
+{
+	if ( index < MAX_DICT_ENTRIES )
+		return mailboxes[index];
+	return NULL;
+}
+
+Mailbox* MailboxDictionary::nextMailboxWithChanges()
+{
+	for ( int i = 0 ; i < MAX_DICT_ENTRIES ; i++ )
+		if ( mailboxes[i] != NULL )
+			if ( mailboxes[i]->hasPendingChanges() )
+				return mailboxes[i];
+	return NULL;
+}
+
+int MailboxDictionary::hasPendingChanges()
+{
+	return ( nextMailboxWithChanges() != NULL );
+}
+
+int MailboxDictionary::nextPendingMailboxIndex()
+{
+	for ( int i = 0 ; i < MAX_DICT_ENTRIES ; i++ )
+		if ( mailboxes[i] != NULL )
+			if ( mailboxes[i]->hasPendingChanges() )
+				return i;
+	return -11;
+}
+
+int MailboxDictionary::prepareUpdatePacket( uint8_t *buffer, uint8_t size )
+{
+	int index = nextPendingMailboxIndex();
+	if ( index < 0 )
+		return 0;
+
+	if ( size < 11 )
+		return -11;
+	if ( buffer == NULL )
+		return -12;
+
+	Mailbox *m = mailboxes[index];
+
+	buffer[0] = index;
+	return 1 + m->prepareUpdatePacket( buffer + 1, size - 1 );
+
+}
+
+int MailboxDictionary::handleUpdatePacket( uint8_t *buffer, uint8_t size )
+{
+	if ( size < 1 )
+		return -8;
+	if ( buffer == NULL )
+		return -9;
+
+	int index = buffer[0];
+
+	if ( index >= MAX_DICT_ENTRIES )
+		return -27;
+
+	Mailbox *m = mailboxes[index];
+	if ( m == NULL )
+		return -10;
+
+	return 1 + m->handleUpdatePacket( buffer + 1, size - 1 );
+}
+
+int MailboxDictionary::handleAckPacket( uint8_t *buffer, uint8_t size )
+{
+	if ( size < 1 )
+		return -11;
+	if ( buffer == NULL )
+		return -12;
+
+	int index = buffer[0];
+
+	Mailbox *m = mailboxes[index];
+	if ( m == NULL )
+		return -13;
+
+	return 1 + m->handleAckPacket( buffer + 1, size - 1 );
+}
+
+void MailboxDictionary::configure()
+{
+	
+		DLN( dMAILBOX|dWARNING, "*** WARNING - MAILBOX BASE CONFIGURE CALLED, NO MAILBOXES SET UP");
+	return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // A "service" is a generic endpoint that can be a source, sink or both for
@@ -520,7 +837,7 @@ void _Makernet::initialize()
 
 void _Makernet::loop()
 {
-	if( reportingInterval.hasPassed() )
+	if ( reportingInterval.hasPassed() )
 	{
 		DPF( dSTATUSMSG, "+++ hwID[%d] type[%d] gen[%d] millis=[%u]\n", hardwareID, deviceType, generation, millis() );
 	}
@@ -1275,9 +1592,7 @@ public:
 	virtual int handlePacket( Packet *p );
 	virtual int pollPacket( Packet *p );
 	virtual void loop();
-
 };
-
 
 void MailboxService::initialize()
 {
@@ -1286,7 +1601,6 @@ void MailboxService::initialize()
 
 int MailboxService::handlePacket( Packet *p )
 {
-
 	return -1;
 }
 
