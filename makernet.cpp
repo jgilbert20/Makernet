@@ -64,7 +64,7 @@
 //
 // DPR = print a single value
 // DLN = print a single value with a newline
-// DPF = printf 
+// DPF = printf
 
 #define DPR( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { printDebug( X ); }
 #define DLN( mask, X... )			   if( (mask & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
@@ -717,7 +717,7 @@ int Network::sendNextPacket()
 			if ( s->pollPacket(p) > 0 ) {
 				int r = sendPacket( p );
 				if ( r < 0 ) {
-					DPR( dNETWORK|dERROR, "sendPacket had error:");
+					DPR( dNETWORK | dERROR, "sendPacket had error:");
 					DLN( r );
 
 
@@ -783,9 +783,9 @@ int Network::routePacket( Packet *p  )
 		int retValSend = sendPacket( p );
 		if ( retValSend < 0 )
 		{
-			DPR( dNETWORK|dERROR, "Route: Immediate packet sendback failed, err=" );
-			DPR( dNETWORK|dERROR, retValSend );
-			DLN( dNETWORK|dERROR );
+			DPR( dNETWORK | dERROR, "Route: Immediate packet sendback failed, err=" );
+			DPR( dNETWORK | dERROR, retValSend );
+			DLN( dNETWORK | dERROR );
 			return retValSend;
 		}
 		return 0;
@@ -793,9 +793,9 @@ int Network::routePacket( Packet *p  )
 
 	if ( retVal < 0 )
 	{
-		DPR( dNETWORK|dERROR, "Route: Exception on handlePacket: ");
-		DPR( dNETWORK|dERROR, retVal );
-		DLN( dNETWORK|dERROR, );
+		DPR( dNETWORK | dERROR, "Route: Exception on handlePacket: ");
+		DPR( dNETWORK | dERROR, retVal );
+		DLN( dNETWORK | dERROR, );
 	}
 
 	return retVal;
@@ -824,17 +824,17 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	Packet *mp = (Packet *)buffer;
 
 	if (!((mp->dest == ADDR_BROADCAST) or (address == ADDR_UNASSIGNED) or (address == mp->dest ))) {
-		DLN( dNETWORK|dWARNING, "Dropping packet not for us");
+		DLN( dNETWORK | dWARNING, "Dropping packet not for us");
 		return;
 	}
 
 	if ( mp->destPort < 0 or mp->destPort >= NUM_PORTS ) {
-		DLN( dNETWORK|dERROR, "Dropping invalid packet port.");
+		DLN( dNETWORK | dERROR, "Dropping invalid packet port.");
 		return;
 	}
 
 	if ( mp->size < 0 or mp->size >= MAX_MAKERNET_FRAME_LENGTH - 1 - sizeof(Packet) ) {
-		DPR( dNETWORK|dERROR, "Dropping invalid sized packet.");
+		DPR( dNETWORK | dERROR, "Dropping invalid sized packet.");
 		return;
 	}
 
@@ -853,9 +853,9 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 	int s = routePacket( mp );
 	if ( s < 0 ) {
-		DPR( dNETWORK|dERROR, "Frame failed to route, err=" );
-		DPR( dNETWORK|dERROR, s );
-		DLN( dNETWORK|dERROR );
+		DPR( dNETWORK | dERROR, "Frame failed to route, err=" );
+		DPR( dNETWORK | dERROR, s );
+		DLN( dNETWORK | dERROR );
 	}
 
 
@@ -883,14 +883,14 @@ int Network::pollFrame( uint8_t *buffer, uint8_t len )
 				if ( finalRetValue > 0 )
 					return finalRetValue;
 				else {
-					DPR( dNETWORK|dERROR, "Return packet failed to finalize: err");
-					DPR( dNETWORK|dERROR, finalRetValue );
-					DLN( dNETWORK|dERROR, );
+					DPR( dNETWORK | dERROR, "Return packet failed to finalize: err");
+					DPR( dNETWORK | dERROR, finalRetValue );
+					DLN( dNETWORK | dERROR, );
 				}
 			}
 			else if ( pollRetValue < 0) {
-				DPR( dNETWORK|dERROR, "pollPacket returned negative?? Something wrong");
-				DLN( dNETWORK|dERROR );
+				DPR( dNETWORK | dERROR, "pollPacket returned negative?? Something wrong");
+				DLN( dNETWORK | dERROR );
 			}
 		}
 	}
@@ -969,7 +969,7 @@ int Network::finalizePacketToFrame( Packet *p )
 int Network::sendPacket( Packet *p )
 {
 	if ( Makernet.network.role != master ) {
-		DLN( dOBJFRAMEWORK|dERROR, "Internal consistency issue! Non-master tried to send a unrequested packet");
+		DLN( dOBJFRAMEWORK | dERROR, "Internal consistency issue! Non-master tried to send a unrequested packet");
 		return -1000;
 	}
 
@@ -984,7 +984,7 @@ int Network::sendPacket( Packet *p )
 int Network::sendPacket( uint8_t destination, uint8_t destPort, uint8_t size, uint8_t *payload)
 {
 	if ( address == ADDR_UNASSIGNED ) {
-		DPR( dOBJFRAMEWORK|dERROR, "ASSERT: Address not configured");
+		DPR( dOBJFRAMEWORK | dERROR, "ASSERT: Address not configured");
 		return -1;
 	}
 
@@ -1102,7 +1102,7 @@ int DeviceControlService::handlePacket(Packet *p)
 {
 
 	if ( p->size < 1) {
-		DLN( dDCS|dERROR, "Runt packet rejected");
+		DLN( dDCS | dERROR, "Runt packet rejected");
 		return -300;
 	}
 
@@ -1125,7 +1125,7 @@ int DeviceControlService::handlePacket(Packet *p)
 				dd.deviceType = (DeviceType)msg->deviceType;
 				BasePeripheral *proxy = BasePeripheral::findPeripheralObjectForDevice( &dd );
 				if ( proxy == NULL ) {
-					DPR( dDCS|dWARNING, "No proxy BasePeripheral found, dropping packet" );
+					DPR( dDCS | dWARNING, "No proxy BasePeripheral found, dropping packet" );
 					return 0;
 				}
 				int newAddress = proxy->connectedDevice.address;
