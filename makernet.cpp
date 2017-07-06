@@ -324,7 +324,7 @@ struct Packet : public PacketHeader {
 // populate a response packet which will be immediately transmitted when the
 // call is over.  It may also wait for the next polling event. If
 // handlePacket() returns > 0, a new packet is replied immediately. Otherwise,
-// no response is assumed unless the handler calls sendPacket. 
+// no response is assumed unless the handler calls sendPacket.
 //
 // Services are provided periodic opportunities to generate new packets. If
 // datalink requires a master/slave architecture and the device is the slave,
@@ -752,15 +752,15 @@ int Network::routePacket( Packet *p  )
 
 	int retVal =  service->handlePacket( p );
 
-	if( retVal > 0 )
+	if ( retVal > 0 )
 	{
-		DPR( "Immediate packet sendback!" );
-		if( Makernet.network.role == Network::slave )
+		DPR( "Route: Immediate packet sendback!" );
+		if ( Makernet.network.role == Network::slave )
 			DPR( "WARNING: Untested code path!");
 		int retValSend = sendPacket( p );
-		if( retValSend < 0 )
+		if ( retValSend < 0 )
 		{
-			DPR( "Immediate packet sendback failed, err=" );
+			DPR( "Route: Immediate packet sendback failed, err=" );
 			DPR( retValSend );
 			DLN();
 			return retValSend;
@@ -768,7 +768,14 @@ int Network::routePacket( Packet *p  )
 		return 0;
 	}
 
-	return retVal; 
+	if( retVal < 0 )
+	{
+		DPR( "Route: Exception on handlePacket: ");
+		DPR( retVal );
+		DLN();
+	}
+
+	return retVal;
 }
 
 // Registers and initializes service
@@ -1076,7 +1083,6 @@ uint8_t nextAddressToVend = 0xA0;
 
 int DeviceControlService::handlePacket(Packet *p)
 {
-	DLN( "DCS: handle packet");
 
 	if ( p->size < 1) {
 		DLN( "Runt packet rejected");
@@ -1086,10 +1092,10 @@ int DeviceControlService::handlePacket(Packet *p)
 
 	DeviceControlMessage *dm = (DeviceControlMessage *)p->payload;
 
+	DPR( "DCS: handle packet, cmd=");
 	DLN( dm->command );
 
-
-	if ( dm->command == DCS_REQUEST_ADDRESS ) {
+	if ( dm->command == DCS_REQUEST_ADDRESS && Makernet.network.role == Network::master ) {
 		DLN( "Req addr");
 		if ( p->size > 1 ) {
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
@@ -1109,7 +1115,7 @@ int DeviceControlService::handlePacket(Packet *p)
 				if ( newAddress == ADDR_UNASSIGNED ) {
 					DPF( "Assigning new address [%d] to uuid [%ld]", nextAddressToVend, proxy->_uuid );
 					DLN();
-					 newAddress = nextAddressToVend++;
+					newAddress = nextAddressToVend++;
 				}
 				proxy->connectedDevice.address = newAddress;
 				proxy->connectedDevice.hardwareID = dd.hardwareID;
@@ -1131,10 +1137,10 @@ int DeviceControlService::handlePacket(Packet *p)
 				p->size = sizeof(DCSAddressAssignMessage);
 
 				DCSAddressAssignMessage *msg = (DCSAddressAssignMessage *)p->payload;
-				
+
 				msg->command = DCS_ASSIGN_ADDRESS;
-				msg->hardwareID_H = (uint8_t)(dd.hardwareID >> 8); 
-				msg->hardwareID_L = (uint8_t)(dd.hardwareID); 
+				msg->hardwareID_H = (uint8_t)(dd.hardwareID >> 8);
+				msg->hardwareID_L = (uint8_t)(dd.hardwareID);
 				msg->generation = Makernet.generation;
 				msg->address = newAddress;
 
@@ -1144,8 +1150,39 @@ int DeviceControlService::handlePacket(Packet *p)
 		return 0;
 	}
 
+
+	if ( dm->command == DCS_ASSIGN_ADDRESS and
+		 Makernet.network.role == Network::slave and
+		 Makernet.network.address == ADDR_UNASSIGNED ) {
+
+		if( p->size < sizeof(DCSAddressAssignMessage) )
+			return 0;
+
+
+	DLN( "here");
+
+		DCSAddressAssignMessage *msg = (DCSAddressAssignMessage *)p->payload;
+
+		uint16_t hardwareID = (uint16_t)msg->hardwareID_H << 8 | (uint16_t)msg->hardwareID_L;
+
+		if( hardwareID != Makernet.hardwareID )
+			return 0;
+
+		uint8_t newAddress = msg->address;
+
+		 DPR( "DCS: Accepting assignment of address=" );
+		 DPR( newAddress );
+
+		 Makernet.network.address = newAddress;
+
+		return 0;
+	}
+
+
+
 	return 0;
 }
+
 
 int DeviceControlService::pollPacket(Packet *p)
 {
@@ -1175,8 +1212,8 @@ int DeviceControlService::pollPacket(Packet *p)
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 			msg->command = DCS_REQUEST_ADDRESS;
 			msg->deviceType = (uint8_t)Makernet.deviceType;
-			msg->hardwareID_H = 0x31;
-			msg->hardwareID_L = 0x14;
+				msg->hardwareID_H = (uint8_t)(Makernet.hardwareID >> 8);
+				msg->hardwareID_L = (uint8_t)(Makernet.hardwareID);
 
 			return 1;
 		}
@@ -1214,7 +1251,7 @@ private:
 	struct sockaddr_un remote;
 	int sock;
 
-	// Buffer for the user command line 
+	// Buffer for the user command line
 	char userCommandBuffer[1000];
 	char *bpos = userCommandBuffer;
 };
@@ -1399,6 +1436,7 @@ int UnixMaster::loop()
 		if ( fds[1].revents & POLLIN )
 			processIncomingFrame();
 	}
+	return 0;
 }
 
 
