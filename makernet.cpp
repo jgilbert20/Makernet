@@ -50,11 +50,12 @@
 #define dERROR        1 << 5
 #define dOBJFRAMEWORK 1 << 6
 #define dWARNING      1 << 7
+#define dSTATUSMSG      1 << 8
 #define dALL          0xFFFFFFFF
 
 
 
-#define DEBUGLEVEL dNETWORK
+#define DEBUGLEVEL dSTATUSMSG
 
 
 // The following three macros are found throughout the code and implement an
@@ -374,7 +375,7 @@ class Service {
 public:
 	// Called when we are registered, do run-time setup here
 	virtual void initialize() = 0;
-	// Called when a packet is routed to us
+	// Called when a packet is routed to us, return > 0 means a outgoing packet was generated
 	virtual int handlePacket( Packet *p ) = 0;
 	// Called with a scatch packet template, return 1 if a packet populated, 0 otherwise
 	virtual int pollPacket( Packet *p ) = 0;
@@ -493,12 +494,14 @@ enum class DeviceType {
 
 class _Makernet {
 public:
+	Interval reportingInterval = Interval(5000);
 	Network network;
 	DeviceType deviceType;
 	uint16_t hardwareID;
 	uint16_t generation;
 
 	void initialize();
+	void loop();
 };
 
 Network::Network() {
@@ -514,6 +517,17 @@ void _Makernet::initialize()
 	hardwareID = getHardwareID();
 	network.initialize();
 }
+
+void _Makernet::loop()
+{
+	if( reportingInterval.hasPassed() )
+	{
+		DPF( dSTATUSMSG, "+++ hwID[%d] type[%d] gen[%d] millis=[%u]\n", hardwareID, deviceType, generation, millis() );
+	}
+	network.loop();
+}
+
+
 
 // Singleton object
 _Makernet Makernet;
@@ -1241,6 +1255,54 @@ void DeviceControlService::loop()
 
 
 
+// The Makernet MailboxService is a flexible attribute-based notification and
+// synchronization service that can serve a large variety of purposes. The
+// core idea is to have a set of numbered mailboxes which remain in sync
+// between two different nodes. These mailboxes are registered at
+// configuration time, and there is the potential for mutliple different
+// mailbox types which can implement custom semantics for network-efficient
+// updates. To trigger a mailbox change, simply update the value using the OO
+// syntax and the framework will trigger the update and sync packets.
+//
+// The MailboxService implements the basic routing for a mailbox, but it
+// remains the responsibility of the caller to set up the contents of the
+// mailboxes at configuration time.
+
+class MailboxService : public Service {
+
+public:
+	virtual void initialize();
+	virtual int handlePacket( Packet *p );
+	virtual int pollPacket( Packet *p );
+	virtual void loop();
+
+};
+
+
+void MailboxService::initialize()
+{
+
+}
+
+int MailboxService::handlePacket( Packet *p )
+{
+
+	return -1;
+}
+
+int MailboxService::pollPacket( Packet *p )
+{
+	return -1;
+}
+
+void MailboxService::loop()
+{
+
+}
+
+
+
+
 
 
 
@@ -1433,7 +1495,7 @@ int UnixMaster::loop()
 		if ( fds[0].revents & POLLIN ) {
 
 			int r = read(stdin, bpos, 1000 + userCommandBuffer - bpos);
-			printf( "**** read from STDIN: [%d] bytes\n", r );
+			// printf( "**** read from STDIN: [%d] bytes\n", r );
 			bpos += r;
 			if ( handleSTDIN( userCommandBuffer, bpos - userCommandBuffer )) {
 				// DLN( dDATALINK, "reset" );
@@ -1482,16 +1544,17 @@ int main(void)
 	while (1)
 	{
 		um.loop();
-		Makernet.network.loop();
+		Makernet.loop();
 		updateMicrosecondCounter();
 	}
 }
 
-#else
+#else // SLAVE
 
 int main(void)
 {
 	DeviceControlService dcs;
+	MailboxService ms;
 	Makernet.network.role = Network::slave;
 	UnixMaster um;
 
@@ -1507,7 +1570,7 @@ int main(void)
 	while (1)
 	{
 		um.loop();
-		Makernet.network.loop();
+		Makernet.loop();
 		updateMicrosecondCounter();
 	}
 
