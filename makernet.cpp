@@ -1428,7 +1428,7 @@ int UnixMaster::loop()
 	fds[1].fd = sock; /* this is our socket */
 	fds[1].events = POLLIN;
 
-	if ( poll( fds, 2, 200 ) > 0 ) {
+	if ( poll( fds, 2, 1000 ) > 0 ) {
 		// Handle stdin
 		if ( fds[0].revents & POLLIN ) {
 
