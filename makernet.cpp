@@ -322,7 +322,9 @@ struct Packet : public PacketHeader {
 // packets. The makernet framework will pass handlePacket() to its registered
 // services. Inside a handlePacket control flow, the handler is free to
 // populate a response packet which will be immediately transmitted when the
-// call is over.  It may also wait for the next polling event.
+// call is over.  It may also wait for the next polling event. If
+// handlePacket() returns > 0, a new packet is replied immediately. Otherwise,
+// no response is assumed unless the handler calls sendPacket. 
 //
 // Services are provided periodic opportunities to generate new packets. If
 // datalink requires a master/slave architecture and the device is the slave,
@@ -713,7 +715,7 @@ int Network::sendNextPacket()
 void Network::loop()
 {
 // 	DLN( "--- Network Loop ---");
-	DPF( "--- Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
+	DPF( "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
 
 	// Give all services a loop() opportunity
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
@@ -748,7 +750,25 @@ int Network::routePacket( Packet *p  )
 	if ( service == NULL )
 		return -201;
 
-	return service->handlePacket( p );
+	int retVal =  service->handlePacket( p );
+
+	if( retVal > 0 )
+	{
+		DPR( "Immediate packet sendback!" );
+		if( Makernet.network.role == Network::slave )
+			DPR( "WARNING: Untested code path!");
+		int retValSend = sendPacket( p );
+		if( retValSend < 0 )
+		{
+			DPR( "Immediate packet sendback failed, err=" );
+			DPR( retValSend );
+			DLN();
+			return retValSend;
+		}
+		return 0;
+	}
+
+	return retVal; 
 }
 
 // Registers and initializes service
@@ -979,6 +999,8 @@ void DeviceControlService::initialize()
 #define DCS_ASSIGN_ADDRESS 0x51
 #define DCS_GENERAL_POLL 0x55
 
+#define DCS_DEFAULT_PORT 0x00
+
 // Payload of all generic device control messages
 
 struct DeviceControlMessage {
@@ -999,6 +1021,7 @@ struct DCSAddressRequestMessage {
 
 struct DCSAddressAssignMessage {
 	uint8_t command;
+	uint8_t address;
 	uint8_t hardwareID_H;
 	uint8_t hardwareID_L;
 	int generation;
@@ -1049,6 +1072,8 @@ uint8_t nextAddressToVend = 0xA0;
 // fine. Positive return values have meaning TBD (could mean a reply is queued
 // in the future.)
 
+
+
 int DeviceControlService::handlePacket(Packet *p)
 {
 	DLN( "DCS: handle packet");
@@ -1080,11 +1105,13 @@ int DeviceControlService::handlePacket(Packet *p)
 					DPR( "No proxy BasePeripheral found, dropping packet" );
 					return 0;
 				}
-				if ( proxy->connectedDevice.address == ADDR_UNASSIGNED ) {
-					DPF( "Assinging new address [%d] to uuid [%ld]", nextAddressToVend, proxy->_uuid );
+				int newAddress = proxy->connectedDevice.address;
+				if ( newAddress == ADDR_UNASSIGNED ) {
+					DPF( "Assigning new address [%d] to uuid [%ld]", nextAddressToVend, proxy->_uuid );
 					DLN();
-					proxy->connectedDevice.address = nextAddressToVend++;
+					 newAddress = nextAddressToVend++;
 				}
+				proxy->connectedDevice.address = newAddress;
 				proxy->connectedDevice.hardwareID = dd.hardwareID;
 				proxy->connectedDevice.connected = 1;
 
@@ -1094,15 +1121,26 @@ int DeviceControlService::handlePacket(Packet *p)
 				     proxy->connectedDevice.hardwareID
 				   );
 
+				// Generate address assignment message
 
+				p->clear(); // clear the packet header
+
+				p->dest = ADDR_BROADCAST;
+				p->src = Makernet.network.address;
+				p->destPort = DCS_DEFAULT_PORT;
+				p->size = sizeof(DCSAddressAssignMessage);
+
+				DCSAddressAssignMessage *msg = (DCSAddressAssignMessage *)p->payload;
+				
+				msg->command = DCS_ASSIGN_ADDRESS;
+				msg->hardwareID_H = (uint8_t)(dd.hardwareID >> 8); 
+				msg->hardwareID_L = (uint8_t)(dd.hardwareID); 
+				msg->generation = Makernet.generation;
+				msg->address = newAddress;
+
+				return 1;
 			}
-
 		}
-
-
-
-
-
 		return 0;
 	}
 
@@ -1388,7 +1426,7 @@ int main(void)
 	UnixMaster um;
 
 	Makernet.network.useDatalink( &um );
-	Makernet.network.registerService(0, &dcs);
+	Makernet.network.registerService(DCS_DEFAULT_PORT, &dcs);
 
 	Makernet.initialize();
 
