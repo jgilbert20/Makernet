@@ -1,0 +1,9 @@
+#ifndef GLOBALS_H
+#define GLOBALS_H
+
+#define HWID_UNASSIGNED 0x0000
+
+#define ADDR_UNASSIGNED 0x00
+#define ADDR_BROADCAST  0xFF
+
+#endif

@@ -50,13 +50,14 @@
 #define dERROR        1 << 5
 #define dOBJFRAMEWORK 1 << 6
 #define dWARNING      1 << 7
-#define dSTATUSMSG      1 << 8
+#define dSTATUSMSG    1 << 8
 #define dMAILBOX      1 << 9
 #define dALL          0xFFFFFFFF
+#define dANY          0xFFFFFFFF
 
 
 
-#define DEBUGLEVEL dSTATUSMSG
+#define DEBUGLEVEL dSTATUSMSG|dOBJFRAMEWORK
 
 
 // The following three macros are found throughout the code and implement an
@@ -331,16 +332,23 @@ struct Packet : public PacketHeader {
 
 
 
-
+#define CONTROLLER 0x1
+#define DEVICE 0x2
 
 #define MAILBOX_OP_FOURBYTE_DEFINITIVE 0x10
 
 // A mailbox represents an extremely flexible place where values can be set
-// and get. Any time a mailbox is set, it triggers a push to a remote mailbox.
-// Remote mailboxes can easily
-
-// The mailbox object represents a single one of these item places, and
-// Mailbox is the abstract interface thus lacks any implementation.
+// and get by multiple nodes on a network. Any time a mailbox is set, it
+// triggers a push to a remote mailbox. Remote mailboxes can easily be used to
+// convey all sorts of information and configuration to and from a device.
+// What's desirable about this arrangement is that a device can be fully reset
+// and then recover its "configuration" when reconnection occurs. Furthermore,
+// a mailbox can act as a trigger point, allowing one-shot events like button
+// up or down events, to be communicated reliably (and one-time only) to a
+// controller.
+//
+// The Mailbox class represents a single one of these item places, and Mailbox
+// is the abstract interface thus lacks any implementation.
 //
 // The mailbox framework is a general purpose tool that is completely agnostic
 // to packet or frame formats. It could easily exist outside of Makernet. The
@@ -832,10 +840,11 @@ Network::Network() {
 
 void _Makernet::initialize()
 {
-	DLN( dOBJFRAMEWORK, "**** Makernet framwork init");
+	DLN( dOBJFRAMEWORK, "**** Makernet framework init");
 	generation = random();
 	hardwareID = getHardwareID();
 	network.initialize();
+//	BasePeripheral::initializeAllPeripherals();
 }
 
 void _Makernet::loop()
@@ -889,6 +898,7 @@ public:
 
 	// Given a device network description, returns a proxy object if one exists
 	static BasePeripheral *findPeripheralObjectForDevice( DeviceProfile *dp );
+	static void initializeAllPeripherals();
 
 	// Look up a peripheral by a device ID
 	// static BasePeripheral *findByDeviceID(uint16_t query);
@@ -949,6 +959,15 @@ void BasePeripheral::_init() {
 	DLN( dOBJFRAMEWORK, );
 
 	configure();
+}
+
+
+// Static
+
+void BasePeripheral::initializeAllPeripherals()
+{
+	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
+		p->_init();
 }
 
 BasePeripheral::~BasePeripheral() {
@@ -1021,6 +1040,7 @@ public:
 class EncoderPeripheral : public BasePeripheral {
 public:
 	EncoderPeripheral();
+	virtual void configure();
 
 	EncoderMailboxDictionary encoderDictionary;
 
@@ -1044,6 +1064,11 @@ void EncoderMailboxDictionary::configure()
 EncoderPeripheral::EncoderPeripheral() :
 	BasePeripheral(DeviceType::Encoder)
 {
+}
+
+void EncoderPeripheral::configure()
+{
+	 encoderDictionary.configure();
 }
 
 
