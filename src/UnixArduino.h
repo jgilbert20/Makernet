@@ -1,3 +1,12 @@
+
+// The UnixArduino.* fileset implement functions and environment aspects that
+// are expected in the Arduino environment but not available in UNIX. These
+// adapters allow the Makernet framework to compile unit tests within UNIX.
+//
+// Note: the actual function signatures for the ArduinoAPI (like millis()
+// should not be defined here), only the supporting library
+
+
 #if !defined(UNIXARDUINO_H) && !defined(ARDUINO)
 #define UNIXARDUINO_H
 

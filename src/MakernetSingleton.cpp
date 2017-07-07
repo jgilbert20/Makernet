@@ -5,7 +5,7 @@
 void _Makernet::initialize()
 {
 	DLN( dOBJFRAMEWORK, "**** Makernet framework init");
-	generation = random();
+	generation = getRandomNumber16();
 	hardwareID = getHardwareID();
 	network.initialize();
 //	BasePeripheral::initializeAllPeripherals();

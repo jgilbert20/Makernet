@@ -3,8 +3,8 @@
 
 #include <Types.h>
 
-#define CONTROLLER 0x1
-#define DEVICE 0x2
+#define MB_ROLE_CONTROLLER 0x1
+#define MB_ROLE_DEVICE 0x2
 
 #define MAILBOX_OP_FOURBYTE_DEFINITIVE 0x10
 

@@ -3,6 +3,8 @@
 // cc multiserver.c -o multiserver && rm /tmp/echo_socke && ./multiserver
 
 
+#ifndef ARDUINO //prevent ArduinoIDE from trying to compile this
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -141,3 +143,4 @@ int main(void)
 
 
 
+#endif

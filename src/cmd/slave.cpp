@@ -1,3 +1,5 @@
+#ifndef ARDUINO //prevent ArduinoIDE from trying to compile this
+
 #include <UnixArduino.h>
 #include <UNIXSocketDatalink.h>
 #include <Makernet.h>
@@ -28,3 +30,6 @@ int main(void)
 
 
 }
+
+
+#endif

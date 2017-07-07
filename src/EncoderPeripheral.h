@@ -1,7 +1,6 @@
 #ifndef ENCODERPERIPHERAL_H
 #define ENCODERPERIPHERAL_H
 
-
 #include <BasePeripheral.h>
 #include <Mailbox.h>
 
@@ -14,9 +13,9 @@
 class EncoderMailboxDictionary : public MailboxDictionary {
 public:
 	virtual void configure();
-	SmallMailbox position   = SmallMailbox(DEVICE, "Encoder position");
-	SmallMailbox buttonDown = SmallMailbox(DEVICE, "Button down");
-	SmallMailbox buttonUp   = SmallMailbox(DEVICE, "Button up");
+	SmallMailbox position   = SmallMailbox(MB_ROLE_DEVICE, "Encoder position");
+	SmallMailbox buttonDown = SmallMailbox(MB_ROLE_DEVICE, "Button down");
+	SmallMailbox buttonUp   = SmallMailbox(MB_ROLE_DEVICE, "Button up");
 };
 
 

@@ -16,7 +16,7 @@
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 
-#define DEBUGLEVEL dSTATUSMSG|dOBJFRAMEWORK
+#define DEBUGLEVEL (dSTATUSMSG|dOBJFRAMEWORK)
 
 // The following three macros are found throughout the code and implement an
 // exceptionally lightweight conditional debugging framwork. When the
@@ -27,10 +27,10 @@
 // DLN = print a single value with a newline
 // DPF = printf
 
-#define DPR( mask, X... )	    if( (mask & DEBUGLEVEL) > 0 ) { printDebug( X ); }
-#define DLN( mask, X... )	    if( (mask & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
-#define DPF( mask, X... )	    if( (mask & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
-#define HPR( mask, ptr, size )  if( (mask & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }
+#define DPR( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebug( X ); }
+#define DLN( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
+#define DPF( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
+#define HPR( mask, ptr, size )  if( ((mask) & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }
 
 
 #ifndef ARDUINO
@@ -80,6 +80,31 @@ inline void printDebugln( int i )
 {
 	printf( "%d\n", i );
 }
+
+inline void hexPrint( int mask, uint8_t *buffer, int size )
+{
+	for ( int i = 0 ; i < size ; i++ ) {
+		uint8_t value = buffer[i];
+		if (value < 0x10)
+			DPR(mask, "0");
+		DPR(mask, value, HEX);
+		DPR(mask, " " );
+	}
+}
+
+
+#else
+
+#if defined(__SAMD11D14AM__)
+#define DEBUGSERIAL Serial1
+#else
+#define DEBUGSERIAL Serial
+#endif
+
+
+#define printDebug( X... )    DEBUGSERIAL.print( X )
+#define printDebugln( X... )    DEBUGSERIAL.println( X )
+
 
 inline void hexPrint( int mask, uint8_t *buffer, int size )
 {

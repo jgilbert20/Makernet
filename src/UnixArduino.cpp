@@ -1,3 +1,8 @@
+
+// The UnixArduino.* fileset implement functions and environment aspects that
+// are expected in the Arduino environment but not available in UNIX. These
+// adapters allow the Makernet framework to compile unit tests within UNIX.
+
 #ifndef ARDUINO
 
 // Faking it libraries
@@ -29,6 +34,7 @@ long long MICROSECOND_COUNTER = 0;
 
 uint32_t millis()
 {
+	updateMicrosecondCounter();
 	return MICROSECOND_COUNTER / 1000;
 }
 
@@ -43,6 +49,10 @@ uint16_t getHardwareID()
 		return FAKEHARDWAREID + 1;
 }
 
+uint16_t getRandomNumber16()
+{
+	return random();
+}
 
 struct timeval stTimeVal;
 
