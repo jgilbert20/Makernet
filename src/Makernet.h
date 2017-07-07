@@ -4,6 +4,9 @@
 #include <Packet.h>
 #include <Interval.h>
 #include <Network.h>
+#include <Service.h>
+#include <DeviceControlService.h>
+#include <MailboxService.h>
 
 // This is a core singleton for the entire application. Right now, as an
 // optimization, the singleton is used inside the Makernet framework itself

@@ -14,6 +14,7 @@
 #include <poll.h>
 
 #include <Globals.h>
+#include <Types.h>
 #include <ArduinoAPI.h>
 #include <UnixArduino.h>
 

@@ -1,5 +1,6 @@
 #ifdef ARDUINO
 
+#include <Types.h>
 #include <Arduino.h>
 
 #else

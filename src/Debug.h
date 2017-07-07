@@ -2,6 +2,7 @@
 #define DEBUG_H
 
 #include <ArduinoAPI.h>
+#include <Types.h>
 
 #define dDATALINK     1 << 1
 #define dNETWORK      1 << 2
