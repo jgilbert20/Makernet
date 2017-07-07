@@ -27,7 +27,7 @@
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 
-#define DEBUGLEVEL   dALL
+#define DEBUGLEVEL   0
 //   (dSTATUSMSG|dOBJFRAMEWORK)
 
 // The following three macros are found throughout the code and implement an
@@ -39,6 +39,15 @@
 // DLN = print a single value with a newline
 // DPF = printf
 
+
+
+
+// #define DPR( mask, X... )	    if(0) { }
+// #define DFL( mask )	    		if(0) { }
+// #define DLN( mask, X... )	    if(0) { }
+// //#define DPF( mask, X... )	    if(0) { }
+// #define DPF( mask, X... )	    if(0) { }
+// #define HPR( mask, ptr, size )  if(0) { }
 
 
 
@@ -138,16 +147,6 @@ inline void hexPrint( int mask, uint8_t *buffer, int size )
 
 
 #endif
-
-
-
-
-
-
-
-
-
-
 
 
 #endif // DEBUG_H

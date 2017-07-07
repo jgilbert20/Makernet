@@ -11,6 +11,16 @@ are needed to arrange the framework (for instance, assigning mailboxes, setting 
 * busReset() is a special verb that is intended to reset all state around the entire network. When this is called, every object should assume all information it has about other devices in the network is potentially wrong.. clear buffers, interrupt work in progress, and wait for new synchronization data to restore state
 
 
+program size calculations as of 7/7/2017
+
+3552 base SAMD11 no USB, internal clock
+4332 for adding Makernet.h
+7232 for adding DCS, a peripheral and the i2c datalink
+7304 for everything except init and loop
+8272 for everything
+
+
+
 
 # Address vending logic design
 
