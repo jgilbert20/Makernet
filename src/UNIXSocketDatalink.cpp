@@ -60,7 +60,8 @@ typedef struct { uint8_t value[5] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; } ThunkMes
 
 ThunkMessage thunk;
 
-// Called by upper layers to send a frame.
+// Called by upper layers to send a frame. Zero means everything OK. Negative
+// is errors
 
 int UNIXSocketDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 {

@@ -35,7 +35,7 @@ class UNIXSocketDatalink : public Datalink {
 public:
 	virtual void initialize();
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len );
-	int loop();
+	virtual void loop();
 	void processIncomingFrame();
 	bool handleSTDIN( char *b, int s );
 	typedef void (*UserCommandHandler)(char *cmd, int len );

@@ -1,3 +1,14 @@
+/********************************************************
+ ** 
+ **  ArduinoAPI.h
+ ** 
+ **  Part of the Makernet framework by Jeremy Gilbert
+ ** 
+ **  License: GPL 3
+ **  See footer for copyright and license details.
+ ** 
+ ********************************************************/
+
 // This defines a common way to pull in the Arduino API (usually a #include
 // <Arduino.h>) in a way that is multiple-platform compatable. It also defines
 // a few helper functions that are highly hardware dependant and are not

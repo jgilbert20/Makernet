@@ -1,12 +1,12 @@
 /********************************************************
- ** 
- **  BasePeripheral.h
- ** 
+ **
+ **  Datalink.h
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 
@@ -28,7 +28,7 @@ class Datalink {
 public:
 	// Start the datalink including any external peripherals
 	virtual void initialize() = 0;
-	// Send a single frame
+	// Called by upper layers to send a frame. Zero means everything OK. Negative is errors
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
 
 	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];

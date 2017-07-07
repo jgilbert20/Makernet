@@ -27,7 +27,7 @@
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 
-#define DEBUGLEVEL (dSTATUSMSG|dOBJFRAMEWORK)
+#define DEBUGLEVEL   (dSTATUSMSG|dOBJFRAMEWORK)
 
 // The following three macros are found throughout the code and implement an
 // exceptionally lightweight conditional debugging framwork. When the
@@ -39,6 +39,7 @@
 // DPF = printf
 
 #define DPR( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebug( X ); }
+#define DFL( mask )	    		if( ((mask) & DEBUGLEVEL) > 0 ) { /* FLUSH one day? */ }
 #define DLN( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
 #define DPF( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
 #define HPR( mask, ptr, size )  if( ((mask) & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }

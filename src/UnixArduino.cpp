@@ -10,7 +10,6 @@
  ********************************************************/
 
 
-
 // The UnixArduino.* fileset implement functions and environment aspects that
 // are expected in the Arduino environment but not available in UNIX. These
 // adapters allow the Makernet framework to compile unit tests within UNIX.
