@@ -24,6 +24,7 @@ public:
 	virtual int handlePacket( Packet *p );
 	virtual int pollPacket( Packet *p );
 	virtual void loop();
+	virtual void busReset();
 
 private:
 

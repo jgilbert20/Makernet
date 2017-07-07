@@ -49,6 +49,23 @@ void BasePeripheral::initializeAllPeripherals()
 		p->_init();
 }
 
+void BasePeripheral::busResetAllPeripherals()
+{
+	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral) {
+		p->busReset();
+		
+		// Not sure what else needs to go here..? Do we force a disconnect and reconnect?
+		// p->deviceProfile.address = ADDR_UNASSIGNED;
+	}
+}
+
+
+
+void BasePeripheral::busReset()
+{
+
+}
+
 BasePeripheral::~BasePeripheral() {
 	// Remove this peripheral from the global linked list
 	BasePeripheral *prev = NULL;

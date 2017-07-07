@@ -22,22 +22,6 @@ void DeviceControlService::initialize()
 
 
 
-// Address vending logic design
-//
-// In the current Makernet architecutre, devices only receive IDs when they
-// are linked to a controll object on the controller. This is basically the
-// entire connection architecture, and devices that cannot be linked will not
-// get addresses.
-//
-// Periodically devices needing addresses emit a REQUEST_ADDRESS packet with
-// some meta-data including their unique device ID. The controller on the
-// network will assign them an available address by calling into the
-// Peripheral framework with the metadata. The peripheral wanting a link will
-// return its pointer and the address is assigned. A packet is emitted to make
-// the assignment. If the packet is received, the remote device will define
-// its network location to the new variable and all further peripheral data
-// will now flow to the address issued completing the link. If the packet is
-// dropped, subsequent REQUEST_ADDRESS requests will re-establish th
 
 
 
@@ -61,7 +45,6 @@ int DeviceControlService::handlePacket(Packet *p)
 		DLN( dDCS | dERROR, "Runt packet rejected");
 		return -300;
 	}
-
 
 	DeviceControlMessage *dm = (DeviceControlMessage *)p->payload;
 
@@ -191,6 +174,11 @@ int DeviceControlService::pollPacket(Packet *p)
 }
 
 void DeviceControlService::loop()
+{
+ 	// DLN( dALL, "DCS Loop handler");
+}
+
+void DeviceControlService::busReset()
 {
  	// DLN( dALL, "DCS Loop handler");
 }

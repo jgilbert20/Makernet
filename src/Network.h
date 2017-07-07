@@ -69,6 +69,7 @@ public:
 	void useDatalink( Datalink *dl);
 	int registerService( int port, Service *s );
 	void loop();
+	void busReset();
 
 	enum { master, slave, peer } role;
 	int address;

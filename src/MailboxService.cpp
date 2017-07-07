@@ -32,3 +32,7 @@ void MailboxService::loop()
 
 }
 
+void MailboxService::busReset()
+{
+
+}

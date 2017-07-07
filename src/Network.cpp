@@ -101,6 +101,18 @@ void Network::loop()
 	 	sendNextPacket();
 }
 
+// Notification of a reset. This is called exactly once at the very end of
+// initialization (so its guarnenteed to be called at the start of the
+// program), and then again when requested by the controller over the network.
+
+void Network::busReset()
+{
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+		if ( s != NULL ) 
+			s->busReset();
+	}
+}
 
 // routePacket() is alled when we have a valid packet that is meant for us.
 // From this point on upwards into the stack, we can assume everything about

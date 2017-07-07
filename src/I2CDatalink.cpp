@@ -72,7 +72,7 @@ static void I2CDatalink_receiveEvent(int howMany) {
 		if ( _datalink->returnFrameSize == 0 ) {
 			DLN( dDATALINK, "^^^^ No packet to send back after poll." );
 		} else if ( _datalink->returnFrameSize > 0 ) {
-			DLN( dWARNING | dDATALINK, "^^^^ WARNING: Unusual codepath: As slave, handleFrame did not generate a packet but I got one on poll");
+			DLN( dDATALINK, "^^^^ Note: As slave, handleFrame did not generate a packet but I got one on poll");
 		} else {
 			DPR( dWARNING | dDATALINK, "^^^^ Unexpected error from pollFrame in datalink corner case");
 			DLN( _datalink->returnFrameSize );

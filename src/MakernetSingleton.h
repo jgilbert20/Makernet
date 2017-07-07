@@ -33,6 +33,7 @@ public:
 
 	void initialize();
 	void loop();
+	void busReset();
 };
 
 extern _Makernet Makernet;

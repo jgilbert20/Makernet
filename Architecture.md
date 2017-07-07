@@ -1,5 +1,21 @@
 This is an in-depth technical review of the makernet implementation and API. FOr more general architecture stuff, see the README file.
 
+# special semantics: initialize, configure, loop and busReset
+
+Makernet has some special terminology around these verbs
+
+* Initialize() called within the core parts of the makernet framework to set up objects exactly once, when framework user called Makernet.initialize()
+* Configure() is a function often called by initialize and intended to be overriden by new peripheral objects to take whatever steps
+are needed to arrange the framework (for instance, assigning mailboxes, setting up services, etc, etc.)
+* loop() is called on many objects during Makernet::loop() so there is an opportunity for housekeeping
+* busReset() is a special verb that is intended to reset all state around the entire network. When this is called, every object should assume all information it has about other devices in the network is potentially wrong.. clear buffers, interrupt work in progress, and wait for new synchronization data to restore state
+
+
+
+# Address vending logic design
+
+In the current Makernet architecutre, devices only receive IDs when they are linked to a controll object on the controller. This is basically the entire connection architecture, and devices that cannot be linked will not get addresses.
+Periodically devices needing addresses emit a REQUEST_ADDRESS packet with some meta-data including their unique device ID. The controller on the network will assign them an available address by calling into the Peripheral framework with the metadata. The peripheral wanting a link will return its pointer and the address is assigned. A packet is emitted to make the assignment. If the packet is received, the remote device will define its network location to the new variable and all further peripheral data will now flow to the address issued completing the link. If the packet is dropped, subsequent REQUEST_ADDRESS requests will re-establish th
 
 
 # datalink
