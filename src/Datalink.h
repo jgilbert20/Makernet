@@ -1,3 +1,15 @@
+/********************************************************
+ ** 
+ **  BasePeripheral.h
+ ** 
+ **  Part of the Makernet framework by Jeremy Gilbert
+ ** 
+ **  License: GPL 3
+ **  See footer for copyright and license details.
+ ** 
+ ********************************************************/
+
+
 #ifndef DATALINK_H
 #define DATALINK_H
 
@@ -21,8 +33,6 @@ public:
 
 	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];
 	uint8_t address;
-
-	// Service *services[16];
 
 };
 

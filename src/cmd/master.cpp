@@ -1,10 +1,19 @@
+/********************************************************
+ ** 
+ **  master.cpp
+ ** 
+ **  Part of the Makernet framework by Jeremy Gilbert
+ ** 
+ **  License: GPL 3
+ **  See footer for copyright and license details.
+ ** 
+ ********************************************************/
 
 #ifndef ARDUINO //prevent ArduinoIDE from trying to compile this
 
 #include <UnixArduino.h>
 #include <UNIXSocketDatalink.h>
 #include <Makernet.h>
-
 
 EncoderPeripheral encoder;
 
@@ -30,6 +39,5 @@ int main(void)
 		updateMicrosecondCounter();
 	}
 }
-
 
 #endif

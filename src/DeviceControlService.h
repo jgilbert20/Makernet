@@ -1,3 +1,14 @@
+/********************************************************
+ ** 
+ **  DeviceControlServce.h
+ ** 
+ **  Part of the Makernet framework by Jeremy Gilbert
+ ** 
+ **  License: GPL 3
+ **  See footer for copyright and license details.
+ ** 
+ ********************************************************/
+
 #ifndef DCS_H
 #define DCS_H
 
@@ -14,24 +25,16 @@ public:
 	virtual int pollPacket( Packet *p );
 	virtual void loop();
 
-
-
 private:
 
 	Interval pollingTimer = Interval(1000);
-
 };
-
-
 
 #define DCS_REQUEST_ADDRESS 0x50
 #define DCS_ASSIGN_ADDRESS 0x51
 #define DCS_GENERAL_POLL 0x55
 
 #define DCS_DEFAULT_PORT 0x00
-
-
-
 
 // Payload of all generic device control messages
 

@@ -1,3 +1,14 @@
+/********************************************************
+ ** 
+ **  Util.h
+ ** 
+ **  Part of the Makernet framework by Jeremy Gilbert
+ ** 
+ **  License: GPL 3
+ **  See footer for copyright and license details.
+ ** 
+ ********************************************************/
+
 #ifndef UTIL_H
 #define UTIL_H
 

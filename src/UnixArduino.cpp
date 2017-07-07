@@ -1,3 +1,15 @@
+/********************************************************
+ ** 
+ **  UnixArduino.cpp
+ ** 
+ **  Part of the Makernet framework by Jeremy Gilbert
+ ** 
+ **  License: GPL 3
+ **  See footer for copyright and license details.
+ ** 
+ ********************************************************/
+
+
 
 // The UnixArduino.* fileset implement functions and environment aspects that
 // are expected in the Arduino environment but not available in UNIX. These
