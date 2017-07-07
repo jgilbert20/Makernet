@@ -28,5 +28,27 @@ struct Packet : public PacketHeader {
 	uint8_t payload[]; // The actual payload
 };
 
+// Note that DeviceType will be embedded into structures that define network
+// messages so its type needs be explicitly defined so it can be consistent
+// across platforms. (C++11 actually does allow subclassing from a integer
+// type but its unclear if this is supported across all makernet desired
+// platforms
+
+enum class DeviceType {
+	Unassigned = 0,
+	Controller = 1,
+	Encoder = 2
+} ;
+// This structure defines the essential parameters of a device identity.
+
+struct DeviceProfile
+{
+	bool connected = false;
+	uint16_t hardwareID = HWID_UNASSIGNED;
+	DeviceType deviceType = DeviceType::Unassigned;
+	uint8_t address = ADDR_UNASSIGNED;
+};
+
+
 
 #endif

@@ -1,7 +1,10 @@
 #include <UnixArduino.h>
 #include <UNIXSocketDatalink.h>
-
 #include <Makernet.h>
+
+
+EncoderPeripheral encoder;
+
 
 int main(void)
 {

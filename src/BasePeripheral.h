@@ -2,11 +2,12 @@
 #define BASEPERIPHERAL_H
 
 
-#include <Makernet.h>
+#include <Packet.h>
 #include <Network.h>
+#include <MakernetSingleton.h>
+
 
 // Baseperipheral.h
-
 
 // The base peripheral class defines a group of proxy objects that provide a
 // clean programmer interface to makernet peripherals. The constructor and
