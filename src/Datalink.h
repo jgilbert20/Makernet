@@ -19,7 +19,7 @@
 // as I2C, RFM, and even ethernet could all be makernet enabled.
 
 
-#define MAX_MAKERNET_FRAME_LENGTH 255
+#define MAX_MAKERNET_FRAME_LENGTH 25
 
 typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
 
@@ -31,7 +31,7 @@ public:
 	// Called by upper layers to send a frame. Zero means everything OK. Negative is errors
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
 
-	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH];
+	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH+1];
 	uint8_t address;
 
 };

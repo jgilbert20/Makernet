@@ -177,7 +177,7 @@ bool UNIXSocketDatalink::handleSTDIN( char *b, int s )
 
 }
 
-int UNIXSocketDatalink::loop()
+void UNIXSocketDatalink::loop()
 {
 	struct pollfd fds[2];
 
@@ -205,7 +205,6 @@ int UNIXSocketDatalink::loop()
 		if ( fds[1].revents & POLLIN )
 			processIncomingFrame();
 	}
-	return 0;
 }
 
 

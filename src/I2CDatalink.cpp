@@ -111,6 +111,8 @@ static void I2CDatalink_requestEvent() {
 
 int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 {
+
+
 	if ( Makernet.network.role == Network::slave ) {
 		// Slave case: store packet and send later
 		if ( returnFrameSize > 0 )
@@ -135,7 +137,7 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 		Wire.beginTransmission(MAKERNET_BROADCAST_I2C); // transmit to device
 
-		for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ ) {
+		for ( int i = 0 ; i < len ; i++ ) {
 			uint8_t c = frameBuffer[i];
 			Wire.write(c);
 
@@ -145,13 +147,14 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			DPR( dDATALINK, " ");
 		}
 
-
 		DLN( dDATALINK );
 		DFL( dDATALINK );
 
 		Wire.endTransmission(true);    // stop transmitting
 
 		// Now read from the remote side...
+
+//		DLN( dDATALINK, "Starting read...");
 
 		uint8_t recvSize = Wire.requestFrom(9, MAX_MAKERNET_FRAME_LENGTH);    // request 6 bytes from slave device #8
 
@@ -176,6 +179,8 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			count++;
 		}
 
+		DPR( dDATALINK, "READ DONE, actual" );
+		DPR( dDATALINK, count );
 		DLN( dDATALINK );
 
 		// Todo better error handling?

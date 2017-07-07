@@ -18,7 +18,6 @@
 // Called at configure time
 void DeviceControlService::initialize()
 {
-
 }
 
 
@@ -192,7 +191,6 @@ int DeviceControlService::pollPacket(Packet *p)
 
 void DeviceControlService::loop()
 {
-// DLN( "Time for a polling packet!");
-
+ 	// DLN( dALL, "DCS Loop handler");
 }
 

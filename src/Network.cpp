@@ -18,8 +18,7 @@
 
 Network::Network() {
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
-		Service *s = services[i];
-		// TODO: What does this do? an init??
+		services[i] = NULL;
 	}
 }
 
@@ -50,6 +49,8 @@ int Network::sendNextPacket()
 	p->clear();
 	p->src = address;
 
+//	DLN( dNETWORK, "Seeking packets to send...");
+
 	// Find the next service that has a packet to send
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
@@ -73,22 +74,31 @@ int Network::sendNextPacket()
 
 
 
-
+Interval topOfLoop = Interval(1000);
 
 void Network::loop()
 {
-// 	DLN( "--- Network Loop ---");
-	DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d]\n", Makernet.generation, Makernet.hardwareID, Makernet.deviceType );
+
+	if( topOfLoop.hasPassed() )
+		 DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d], addr [%d]\n", 
+		 	Makernet.generation, Makernet.hardwareID, Makernet.deviceType, address );
 
 	// Give all services a loop() opportunity
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
-		if ( s != NULL )
-			s->loop();
+
+		// DPR( dNETWORK, "service ");
+		// DPR( dNETWORK, i );
+		// DPR( dNETWORK, "   ");
+		// DPR( dNETWORK, (long)s );
+		// DLN( dNETWORK );
+
+		 if ( s != NULL )
+		 		s->loop();
 	}
 
 	if ( Makernet.network.role != slave )
-		sendNextPacket();
+	 	sendNextPacket();
 }
 
 

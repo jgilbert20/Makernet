@@ -25,9 +25,8 @@ void _Makernet::initialize()
 void _Makernet::loop()
 {
 	if ( reportingInterval.hasPassed() )
-	{
-		DPF( dSTATUSMSG, "+++ hwID[%d] type[%d] gen[%d] millis=[%u]\n", hardwareID, deviceType, generation, millis() );
-	}
+		DPF( dSTATUSMSG, "+++ STATUS +++ hwID[%d] type[%d] gen[%d] millis=[%lu]\n", hardwareID, deviceType, generation, millis() );
+
 	network.loop();
 }
 
