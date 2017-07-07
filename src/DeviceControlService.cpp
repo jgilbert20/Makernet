@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  DeviceControlServce.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #include <DeviceControlService.h>
@@ -175,11 +175,11 @@ int DeviceControlService::pollPacket(Packet *p)
 
 void DeviceControlService::loop()
 {
- 	// DLN( dALL, "DCS Loop handler");
+	// DLN( dALL, "DCS Loop handler");
 }
 
 void DeviceControlService::busReset()
 {
- 	// DLN( dALL, "DCS Loop handler");
+	// DLN( dALL, "DCS Loop handler");
 }
 
