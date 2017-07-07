@@ -73,7 +73,7 @@ int DeviceControlService::handlePacket(Packet *p)
 		if ( p->size > 1 ) {
 			DCSAddressRequestMessage *msg = (DCSAddressRequestMessage *)p->payload;
 			DeviceType type = (DeviceType)msg->deviceType;
-			DPF( dDCS, "Assign address for type [%d]", type );
+			DPF( dDCS, "DCS: Asked to assign address for type [%d]", type );
 			DLN( dDCS );
 			if ( Makernet.network.role == Network::master ) {
 				DeviceProfile dd;
@@ -81,7 +81,8 @@ int DeviceControlService::handlePacket(Packet *p)
 				dd.deviceType = (DeviceType)msg->deviceType;
 				BasePeripheral *proxy = BasePeripheral::findPeripheralObjectForDevice( &dd );
 				if ( proxy == NULL ) {
-					DPR( dDCS | dWARNING, "No proxy BasePeripheral found, dropping packet" );
+					DPR( dDCS | dWARNING, "DCS-WARN: No proxy BasePeripheral found for device requesting address, dropping packet type=" );
+					DLN( dDCS | dWARNING, (int)type );
 					return 0;
 				}
 				int newAddress = proxy->connectedDevice.address;

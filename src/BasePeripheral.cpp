@@ -82,7 +82,7 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 	// First look for hardware matches
 
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
-		if ( p->connectedDevice.hardwareID != HWID_UNASSIGNED and
+		if ( // p->connectedDevice.hardwareID != HWID_UNASSIGNED and
 		        dp->hardwareID == p->connectedDevice.hardwareID )
 			return p;
 

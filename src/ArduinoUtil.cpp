@@ -24,7 +24,7 @@ uint16_t getRandomNumber16()
 
 uint16_t getHardwareID()
 {
-	return( 0xBEEF );
+	return( 0xBEE2 );
 
 }
 

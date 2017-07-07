@@ -188,13 +188,19 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 		return;
 	}
 
-	DPF( dNETWORK, "%%%%%%%% Inbound packet dest=[%i] src=[%i] dPort=[%i] size=[%i]",
-	     mp->dest, mp->src, mp->destPort, mp->size );
+	uint8_t packetSize = sizeof( Packet ) + mp->size;
+	uint8_t packetSizeWithCRC = packetSize + 1;
+
+	DPF( dNETWORK, "%%%%%%%% Inbound packet dest=[%i] src=[%i] dPort=[%i] frameSize=[%i] packetSize=[%i]",
+	     mp->dest, mp->src, mp->destPort, mp->size, packetSize );
 	DLN( dNETWORK );
 
+	if( packetSizeWithCRC != len)
+	DPF( dNETWORK|dWARNING, "%%%%%%%% WARNING: Inbound frame size [%d] != frameSize [%d]; ignoring extras!\n", packetSizeWithCRC, len  )
+
 	// Verify checksum
-	uint8_t calculatedCRC = calculateCRC(0, buffer, len - 1 );
-	uint8_t presentedCRC = buffer[len - 1];
+	uint8_t calculatedCRC = calculateCRC(0, buffer, packetSize );
+	uint8_t presentedCRC = buffer[packetSize];
 
 	if ( calculatedCRC != presentedCRC ) {
 		DPF( dNETWORK, "%%%%%%%% CRC check failed: (%x) vs (%x), frame dropped\n", calculatedCRC, presentedCRC );

@@ -57,25 +57,26 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	DLN( dDATALINK );
 	DFL( dDATALINK );
 
-	DLN( dDATALINK, "Sending frame up to network layer" );
+	DLN( dDATALINK, "^^^^ Sending frame up to network layer" );
 
 	_datalink->returnFrameSize = 0;
 	Makernet.network.handleFrame( _datalink->frameBuffer, p );
 
-	DLN( dDATALINK, "Frame handled" );
+	DLN( dDATALINK, "^^^^ Frame handled" );
 
-	if ( _datalink->returnFrameSize > 0 )
-	{
-		DLN( dDATALINK, "handleFrame generated a return packet!");
-	}
-	else
-	{
-		DLN( dDATALINK, "handleFrame did NOT generate a return packet, prompting framework!");
+	if ( _datalink->returnFrameSize > 0 ) {
+		DLN( dDATALINK, "^^^^ handleFrame generated a return packet!");
+	} else {
+		DLN( dDATALINK, "^^^^ handleFrame did NOT generate a return packet, prompting framework!");
 		_datalink->returnFrameSize = Makernet.network.pollFrame( _datalink->frameBuffer, MAX_MAKERNET_FRAME_LENGTH );
-		if ( _datalink->returnFrameSize > 0 ) {
-			DLN( dDATALINK, "No packet to send back after poll." );
+		if ( _datalink->returnFrameSize == 0 ) {
+			DLN( dDATALINK, "^^^^ No packet to send back after poll." );
+		} else if ( _datalink->returnFrameSize > 0 ) {
+			DLN( dWARNING | dDATALINK, "^^^^ WARNING: Unusual codepath: As slave, handleFrame did not generate a packet but I got one on poll");
 		} else {
-			DLN( dWARNING | dDATALINK, "WARNING: Unusual codepath: As slave, handleFrame did not generate a packet but I got one on poll");
+			DPR( dWARNING | dDATALINK, "^^^^ Unexpected error from pollFrame in datalink corner case");
+			DLN( _datalink->returnFrameSize );
+			_datalink->returnFrameSize = 0;
 		}
 	}
 }
@@ -179,9 +180,11 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			count++;
 		}
 
-		DPR( dDATALINK, "READ DONE, actual" );
+		DPR( dDATALINK, "READ DONE, actual sz=" );
 		DPR( dDATALINK, count );
 		DLN( dDATALINK );
+
+		Makernet.network.handleFrame( _datalink->frameBuffer, count );
 
 		// Todo better error handling?
 
