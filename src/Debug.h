@@ -28,7 +28,7 @@
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
-#define DEBUGLEVEL   0xFFFFFFFF
+#define DEBUGLEVEL   0
 //   (dSTATUSMSG|dOBJFRAMEWORK)
 
 // The following three macros are found throughout the code and implement an

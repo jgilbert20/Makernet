@@ -1,4 +1,29 @@
 This is an in-depth technical review of the makernet implementation and API. FOr more general architecture stuff, see the README file.
+
+
+# new mailbox design
+
+
+The MailboxService controls a collection of Mailboxes which can be used to transfer and preserve state across the network in an efficient and low-maintenance fashion. 
+
+To use it, instantiate a series of Mailboxes somewhere in your code. Each mailbox has an ID, a type and a description. 
+
+design requriements
+- you'd want to be able to add devices that have different firmware bases than yours (e.g. adding a new device type shouldn't force the old devices to recompile)
+- you want to have different developers assign IDs within their own namespaces and not have to consult some global "mailbox" registry to prevent conflict
+
+- Observation: the pollPacket/handlePacket interface is efficient and durable and used as a pattern in many other places in the code.
+
+All the above suggests that the awareness of a mailbox meaning should be strictly kept between the BasePeripheral object and the mailbox service on the peripheral end.
+
+design option 1: the mailbox service is instantiated multiple times, once per each peripheral. On a controller, all incoming traffic FROM a particular address gets automatically routed to the peripheral object, which then has a port jump table. On the peripheral, incoming packets go directly to services. CON: lots of dispatching, and every mailbox service must be subclassed. Also, what effort is needed by the peripheral to route to its mailbox object? Is that handled by BasePeripheral?
+
+design option 2: one mailbox service instance on both the peripheral and on the controller. When an incoming packet comes in for the mailbox, the service somehow routes it elsewhere on the controller.
+
+It seems to me that every baseperipheral should have a mailbox object. My brain is freaking out about vtables, but I actually honestly don't see the problem with them. It makes for the cleanest, best design. Dispatch has to happen ANYWAY, either with a load of switch statements OR with function pointers. FPs are just as fast. The freaking i'm having has to do with the fact that a vtable forces code for all virtual functions (and their call-path dependencies) to be included in the final object code. So just to self-talk here a bit, the fail would be a case where a peripheral device uses an object but doesn't ever have to call function virtual X because that function is ONLY used by the controller but has to keep the code there anyway. If you can avoid that "fail" situation, vtables really honestly add nothing to the code and run way faster than a chain of if statements. So the question is when you make something virtual, are you doing it on something that will be handled by even the tiniest peripheral object? The unsettling question: if there are 10 subclasses of a virtual object in the codebase, but only 1 subclass is ever "touched", will they get optimized out? I assume the answer is yes. And actually vtables are also superior in common routing/framework code over chained IF or switch. In the switch case, you sadly end up with a shit ton of references that the compiler likely HAS to include. 
+
+
+
  
 # special semantics: initialize, configure, loop and busReset
 
@@ -9,6 +34,11 @@ Makernet has some special terminology around these verbs
 are needed to arrange the framework (for instance, assigning mailboxes, setting up services, etc, etc.)
 * loop() is called on many objects during Makernet::loop() so there is an opportunity for housekeeping
 * busReset() is a special verb that is intended to reset all state around the entire network. When this is called, every object should assume all information it has about other devices in the network is potentially wrong.. clear buffers, interrupt work in progress, and wait for new synchronization data to restore state
+
+
+7/8/2017 program size calculation
+
+6660 for MakernetD11 UART, no USB, INTERNAL_OSC - perhipheral chain
 
 
 program size calculations as of 7/7/2017
