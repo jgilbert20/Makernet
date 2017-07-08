@@ -84,18 +84,13 @@ void Network::loop()
 		 	Makernet.generation, Makernet.hardwareID, Makernet.deviceType, address );
 
 	// Give all services a loop() opportunity
-	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
-		Service *s = services[i];
+	// 7/8-can't find cases whwere loop would be needed, experipmetnal removal
 
-		// DPR( dNETWORK, "service ");
-		// DPR( dNETWORK, i );
-		// DPR( dNETWORK, "   ");
-		// DPR( dNETWORK, (long)s );
-		// DLN( dNETWORK );
-
-		 if ( s != NULL )
-		 		s->loop();
-	}
+	// for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+	// 	Service *s = services[i];
+	// 	 if ( s != NULL )
+	// 	 		s->loop();
+	// }
 
 	if ( Makernet.network.role != slave )
 	 	sendNextPacket();

@@ -43,4 +43,20 @@ public:
 // 	MailboxDictionary *mailboxDict;
 };
 
+class CornerCase : public Service {
+
+public:
+	virtual void initialize();
+	virtual int handlePacket( Packet *p );
+	virtual int pollPacket( Packet *p );
+	virtual void loop();
+	virtual void busReset();
+
+	DeviceProfile *endpoint; 
+
+// 	MailboxDictionary *mailboxDict;
+};
+
+
+
 #endif 
