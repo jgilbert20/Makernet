@@ -181,10 +181,10 @@ int DeviceControlService::pollPacket(Packet *p)
 	return 0;
 }
 
-void DeviceControlService::loop()
-{
-	// DLN( dALL, "DCS Loop handler");
-}
+// void DeviceControlService::loop()
+// {
+// 	// DLN( dALL, "DCS Loop handler");
+// }
 
 void DeviceControlService::busReset()
 {

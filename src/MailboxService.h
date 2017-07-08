@@ -35,7 +35,7 @@ public:
 	virtual void initialize();
 	virtual int handlePacket( Packet *p );
 	virtual int pollPacket( Packet *p );
-	virtual void loop();
+	// virtual void loop();
 	virtual void busReset();
 
 	DeviceProfile *endpoint; 

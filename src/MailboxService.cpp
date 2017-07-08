@@ -59,10 +59,10 @@ int MailboxService::pollPacket( Packet *p )
 	return -1;
 }
 
-void MailboxService::loop()
-{
+// void MailboxService::loop()
+// {
 
-}
+// }
 
 void MailboxService::busReset()
 {

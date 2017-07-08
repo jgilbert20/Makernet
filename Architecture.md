@@ -45,6 +45,8 @@ are needed to arrange the framework (for instance, assigning mailboxes, setting 
 5836 with removal of all loop logic from services incluing one virtual function
 5860 with just re-addition of empty loop() virtual handler in 2 services
 5860 with addition of one more (unreferenced) service object
+5836 with removal of loop() virtual function. 
+
 
 
 WHAT A RELIEF-new framework signficantly smaller!!
