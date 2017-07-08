@@ -38,11 +38,11 @@ are needed to arrange the framework (for instance, assigning mailboxes, setting 
 
 7/8/2017 program size calculation
 
-6660 for MakernetD11 UART, no USB, INTERNAL_OSC - perhipheral chain
+6660 for MakernetD11 UART, no USB, INTERNAL_OSC - peripheral chain
 5964 when CONTROLLER_SUPPORT set to 0
 5924 conditionalizing the entire BasePeripheral framework
 5884 with some really small scale adds of CONTROLLER_SUPPORT
-5836 with removal of all loop logic from services incluing one virtual function
+5836 with removal of all loop logic from services including one virtual function
 5860 with just re-addition of empty loop() virtual handler in 2 services
 5860 with addition of one more (unreferenced) service object
 5836 with removal of loop() virtual function. 
