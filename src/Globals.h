@@ -18,4 +18,6 @@
 #define ADDR_BROADCAST  0xFF
 
 
+#define CONTROLLER_SUPPORT 0
+
 #endif

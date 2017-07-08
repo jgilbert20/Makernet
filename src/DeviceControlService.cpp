@@ -23,12 +23,15 @@ void DeviceControlService::initialize()
 
 
 
-
+#if CONTROLLER_SUPPORT
 
 // Holds the next available address if there isn't one already Staring
 // assignment at 0xA0 for ease of identification in packet dumps.
 
 uint8_t nextAddressToVend = 0xA0;
+
+#endif
+
 
 // General incoming packet handler.
 //
@@ -51,6 +54,7 @@ int DeviceControlService::handlePacket(Packet *p)
 	DPR( dDCS, "DCS: handle packet, cmd=");
 	DLN( dDCS, dm->command );
 
+#if CONTROLLER_SUPPORT
 	if ( dm->command == DCS_REQUEST_ADDRESS && Makernet.network.role == Network::master ) {
 		DLN( dDCS, "DCS: Req addr");
 		if ( p->size > 1 ) {
@@ -106,7 +110,7 @@ int DeviceControlService::handlePacket(Packet *p)
 		}
 		return 0;
 	}
-
+#endif
 
 	if ( dm->command == DCS_ASSIGN_ADDRESS and
 	        Makernet.network.role == Network::slave and
@@ -144,7 +148,7 @@ int DeviceControlService::pollPacket(Packet *p)
 {
 	// Generate the general poll messages if I am the master
 
-	if ( Makernet.network.role == Network::master )
+	if ( CONTROLLER_SUPPORT && Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
 		{
 			DLN( dDCS, "Time for a polling packet!");

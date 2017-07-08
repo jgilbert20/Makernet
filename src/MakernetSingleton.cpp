@@ -22,7 +22,9 @@ void _Makernet::initialize()
 	generation = getRandomNumber16();
 	hardwareID = getHardwareID();
 	network.initialize();
+#if CONTROLLER_SUPPORT 
 	BasePeripheral::initializeAllPeripherals();
+#endif
 }
 
 // busReset() is a special verb that is intended to reset all state around the
@@ -37,7 +39,11 @@ void _Makernet::initialize()
 void _Makernet::busReset()
 {
 	network.busReset();
+
+#if CONTROLLER_SUPPORT 
 	BasePeripheral::busResetAllPeripherals();
+#endif
+
 }
 
 void _Makernet::loop()

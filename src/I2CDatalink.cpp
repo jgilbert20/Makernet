@@ -125,7 +125,7 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 		returnFrameSize = len;
 
 		return 0;
-	} else {
+	} else if ( CONTROLLER_SUPPORT and Makernet.network.role == Network::master ) {
 		// Master sending case
 
 		DPR( dDATALINK, "<<<< (" );

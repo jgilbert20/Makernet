@@ -12,6 +12,7 @@
 #include <BasePeripheral.h>
 #include <Debug.h>
 
+#if CONTROLLER_SUPPORT
 
 long uuid_gen = 0x10000;
 BasePeripheral* BasePeripheral::_firstPeripheral = NULL;
@@ -113,3 +114,5 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 	return NULL;
 
 }
+
+#endif 

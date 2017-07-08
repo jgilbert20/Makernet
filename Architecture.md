@@ -39,6 +39,11 @@ are needed to arrange the framework (for instance, assigning mailboxes, setting 
 7/8/2017 program size calculation
 
 6660 for MakernetD11 UART, no USB, INTERNAL_OSC - perhipheral chain
+5964 when CONTROLLER_SUPPORT set to 0
+5924 conditionalizing the entire BasePeripheral framework
+5884 with some really small scale adds of CONTROLLER_SUPPORT
+
+WHAT A RELIEF-new framework signficantly smaller!!
 
 
 program size calculations as of 7/7/2017
