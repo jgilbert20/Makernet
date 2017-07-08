@@ -70,38 +70,3 @@ void MailboxService::busReset()
 }
 
 
-
-void CornerCase::initialize()
-{
-
-}
-
-int CornerCase::handlePacket( Packet *p )
-{
-	return -1;
-}
-
-int CornerCase::pollPacket( Packet *p )
-{
-	// if( mailboxDict->hasPendingChanges() ) {
-	// 	p->clear();
-	// 	p->dest = endpoint->address;
-	// 	p->src = Network::address;
-	// 	p->destPort = PORT_MAILBOX;
-	// 	p->size = mailboxDict->prepareUpdatePacket( p->payload, MAX_MAKERNET_PACKET_LEN );
-	// }
-
-	return -1;
-}
-
-void CornerCase::loop()
-{
-
-}
-
-void CornerCase::busReset()
-{
-
-}
-
-
