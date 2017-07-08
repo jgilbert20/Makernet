@@ -21,7 +21,7 @@
 
 #define MAX_MAKERNET_FRAME_LENGTH 25
 
-typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
+// typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
 
 class Datalink {
 

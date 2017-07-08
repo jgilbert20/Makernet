@@ -26,8 +26,9 @@
 #define dMAILBOX      1 << 9
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
+#define dNONE         0x00000000
 
-#define DEBUGLEVEL   0
+#define DEBUGLEVEL   0xFFFFFFFF
 //   (dSTATUSMSG|dOBJFRAMEWORK)
 
 // The following three macros are found throughout the code and implement an

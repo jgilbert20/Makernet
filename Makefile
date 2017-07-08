@@ -1,8 +1,8 @@
 CPP_FILES := $(wildcard src/*.cpp)
 OUT_FILES := master slave
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
-LD_FLAGS :=
-CC_FLAGS := -std=c++11 -I src/
+LD_FLAGS := -g 
+CC_FLAGS := -std=c++11 -I src/ -g 
 
 all: master slave
 

@@ -42,6 +42,8 @@
 // 0 is reserved as an endpoint for network control functions.
 
 #define NUM_PORTS 16
+#define PORT_DCS 0
+#define PORT_MAILBOX 1
 
 class Datalink;
 
@@ -63,6 +65,8 @@ public:
 	int finalizePacketToFrame( Packet *p );
 
 	int sendNextPacket();
+
+	DeviceProfile controller;
 
 	Datalink *datalink;
 	void initialize();

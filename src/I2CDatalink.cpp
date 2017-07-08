@@ -112,8 +112,6 @@ static void I2CDatalink_requestEvent() {
 
 int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 {
-
-
 	if ( Makernet.network.role == Network::slave ) {
 		// Slave case: store packet and send later
 		if ( returnFrameSize > 0 )

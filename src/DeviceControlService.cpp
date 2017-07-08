@@ -128,6 +128,10 @@ int DeviceControlService::handlePacket(Packet *p)
 		DPR( dDCS, newAddress );
 		DLN( dDCS );
 
+		// Makernet.network.controller.connected = true;
+		// Makernet.network.controller.deviceType = DeviceType::Controller;
+		// Makernet.network.controller.address = 0;
+
 		Makernet.network.address = newAddress;
 
 		return 0;

@@ -50,7 +50,6 @@ int SmallMailbox::hasPendingChanges()
 	return !synchronized;
 }
 
-
 int SmallMailbox::prepareUpdatePacket( uint8_t *buffer, int size )
 {
 	if ( size < MAILBOX_SMALLFORMAT_SIZE + 2 )

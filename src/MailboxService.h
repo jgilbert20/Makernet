@@ -37,6 +37,10 @@ public:
 	virtual int pollPacket( Packet *p );
 	virtual void loop();
 	virtual void busReset();
+
+	DeviceProfile *endpoint; 
+
+// 	MailboxDictionary *mailboxDict;
 };
 
 #endif 

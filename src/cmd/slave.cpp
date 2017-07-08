@@ -15,15 +15,18 @@
 #include <UNIXSocketDatalink.h>
 #include <Makernet.h>
 
-int main(void)
+int main(int argc, const char * argv[])
 {
 	DeviceControlService dcs;
 	MailboxService ms;
 	Makernet.network.role = Network::slave;
 	UNIXSocketDatalink um;
 
+	EncoderMailboxDictionary emd;
+	emd.configure();
+
 	Makernet.network.useDatalink( &um );
-	Makernet.network.registerService(0, &dcs);
+	Makernet.network.registerService(PORT_DCS, &dcs);
 
 	Makernet.deviceType = DeviceType::Encoder;
 

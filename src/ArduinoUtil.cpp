@@ -18,7 +18,7 @@
 
 uint16_t getRandomNumber16()
 {
-	return random( 16000 );
+	return 1; // random( 16000 );
 
 }
 

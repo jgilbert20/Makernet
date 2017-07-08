@@ -1,5 +1,5 @@
 This is an in-depth technical review of the makernet implementation and API. FOr more general architecture stuff, see the README file.
-
+ 
 # special semantics: initialize, configure, loop and busReset
 
 Makernet has some special terminology around these verbs
@@ -18,6 +18,24 @@ program size calculations as of 7/7/2017
 7232 for adding DCS, a peripheral and the i2c datalink
 7304 for everything except init and loop
 8272 for everything
+
+Wow, taking out random saved almost 700 bytes!!!
+7576 for everything with a single random() call removed
+
+
+a super condensed version of the old makernet peripheral code compiled to this but its way less functional:
+
+Sketch uses 6980 bytes (42%) of program storage space. Maximum is 16384 bytes.
+
+arm-none-eabi-nm makernet_g2_master.ino.elf -S --size-sort -C
+
+
+
+https://stackoverflow.com/questions/24649504/gcc-gc-sections-and-finding-symbol-dependencies
+
+nice set of tools here for tracking where size is going and why
+
+The root of the problem for me was having a class that inherited from another. This created a virtual table, and the compiler cannot remove dead code that is referenced in a virtual table.
 
 
 

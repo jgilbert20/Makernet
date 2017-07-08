@@ -230,6 +230,8 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 
 }
 
+// Packet *preparePacketShortcut( uint8_t addr, uint8_t )
+
 // pollFrame is invoked by the datalink layer when a network condition allows
 // a frame to be transmitted (e.g. link is pending), typically in cases where
 // the datalink is acting as a slave and the master has given it permission to
