@@ -1,3 +1,4 @@
+H_FILES := $(wildcard src/*.h)
 CPP_FILES := $(wildcard src/*.cpp)
 OUT_FILES := master slave
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
@@ -12,7 +13,7 @@ master: $(OBJ_FILES) src/cmd/master.cpp
 slave: $(OBJ_FILES) src/cmd/slave.cpp
 	g++ $(LD_FLAGS) $(CC_FLAGS) -o $@ $^
 
-obj/%.o: src/%.cpp
+obj/%.o: src/%.cpp $(H_FILES)
 	g++ $(CC_FLAGS) -c -o $@ $<
 
 clean:
