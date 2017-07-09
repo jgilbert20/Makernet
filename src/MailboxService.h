@@ -15,6 +15,7 @@
 
 #include <Packet.h>
 #include <Service.h>
+#include <Mailbox.h>
 
 // The Makernet MailboxService is a flexible attribute-based notification and
 // synchronization service that can serve a large variety of purposes. The
@@ -29,6 +30,15 @@
 // remains the responsibility of the caller to set up the contents of the
 // mailboxes at configuration time.
 
+#define MAX_MAILBOXS_PER_SERVICE 16
+
+struct MailboxUpdateMessage {
+	uint8_t mailbox;
+	uint8_t payload[];
+};
+
+#define MAX_MAILBOX_MESSAGE_SIZE (MAX_PACKET_PAYLOAD_SIZE - sizeof(MailboxUpdateMessage))
+
 class MailboxService : public Service {
 
 public:
@@ -39,6 +49,17 @@ public:
 	virtual void busReset();
 
 	DeviceProfile *endpoint; 
+	Mailbox *mailboxes[MAX_MAILBOXS_PER_SERVICE];
+
+   enum Command
+   {
+      Update,
+      Acknowledge
+   };
+
+private:
+	int nextPendingMailboxIndex();
+void pointPacketToEndpoint( Packet *p );
 
 // 	MailboxDictionary *mailboxDict;
 };

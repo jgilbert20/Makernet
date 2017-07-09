@@ -40,7 +40,7 @@
 // black box, to another Mailbox object which then applies the changes and
 // brings the items in sync.
 //
-// The Mailbox and MailboxDictionary framework has no concept of a connection
+// The Mailbox framework has no concept of a connection
 
 
 class Mailbox {
@@ -54,9 +54,8 @@ public:
 
 	virtual void reset();
 	virtual void trigger() = 0;
-	virtual int prepareUpdatePacket( uint8_t *buffer, int size ) = 0;
-	virtual int handleUpdatePacket( uint8_t *buffer, int size ) = 0;
-	virtual int handleAckPacket( uint8_t *buffer, int size ) = 0;
+	virtual int generateMessage( uint8_t *buffer, int size ) = 0;
+	virtual int handleMessage( uint8_t *buffer, int size ) = 0;
 	virtual int hasPendingChanges() = 0;
 };
 
@@ -76,38 +75,13 @@ public:
 
 	virtual void reset();
 	virtual void trigger();
-	virtual int prepareUpdatePacket( uint8_t *buffer, int size );
-	virtual int handleUpdatePacket( uint8_t *buffer, int size );
-	virtual int handleAckPacket( uint8_t *buffer, int size );
+	virtual int generateMessage( uint8_t *buffer, int size );
+	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
+
 	void setLong( uint32_t v );
 	uint32_t getLong();
 };
-
-// MailboxDictionary implements an array of Mailbox objects and acts as a
-// supervisor to each "entry".  The mailbox dictionary uses the same "network
-// agnostic" calling interface as a mailbox object. The caller is expected to
-// periodically call it for updates, then transmit the packet messages
-// unchanged to the remote server where those changes will be applied.
-
-#define MAX_DICT_ENTRIES 16
-
-class MailboxDictionary {
-public:
-	MailboxDictionary();
-	virtual void configure();
-	Mailbox *mailboxes[MAX_DICT_ENTRIES];
-	void set( int index, Mailbox& m );
-	Mailbox *get( int index );
-	int hasPendingChanges();
-	Mailbox* nextMailboxWithChanges();
-	int nextPendingMailboxIndex();
-	int prepareUpdatePacket( uint8_t *buffer, uint8_t size );
-	int handleUpdatePacket( uint8_t *buffer, uint8_t size );
-	int handleAckPacket( uint8_t *buffer, uint8_t size );
-
-};
-
 
 
 #endif

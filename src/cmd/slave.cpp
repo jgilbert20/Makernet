@@ -22,8 +22,8 @@ int main(int argc, const char * argv[])
 	Makernet.network.role = Network::slave;
 	UNIXSocketDatalink um;
 
-	EncoderMailboxDictionary emd;
-	emd.configure();
+	// EncoderMailboxDictionary emd;
+	// emd.configure();
 
 	Makernet.network.useDatalink( &um );
 	Makernet.network.registerService(PORT_DCS, &dcs);

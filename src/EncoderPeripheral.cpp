@@ -12,14 +12,14 @@
 #include <EncoderPeripheral.h>
 #include <Debug.h>
 
-void EncoderMailboxDictionary::configure()
-{
+// void EncoderMailboxDictionary::configure()
+// {
 	
-	DPR( dANY, "Configuring encoder dictionary...");
-	set(0, position);
-	set(1, buttonDown);
-	set(2, buttonUp);
-}
+// 	DPR( dANY, "Configuring encoder dictionary...");
+// 	set(0, position);
+// 	set(1, buttonDown);
+// 	set(2, buttonUp);
+// }
 
 
 EncoderPeripheral::EncoderPeripheral() :
@@ -29,5 +29,5 @@ EncoderPeripheral::EncoderPeripheral() :
 
 void EncoderPeripheral::configure()
 {
-	 encoderDictionary.configure();
+	 // encoderDictionary.configure();
 }

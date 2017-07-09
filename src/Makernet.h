@@ -19,6 +19,7 @@
 #include <Service.h>
 #include <DeviceControlService.h>
 #include <MailboxService.h>
+#include <MakernetSingleton.h>
 
 
 #include <EncoderPeripheral.h>

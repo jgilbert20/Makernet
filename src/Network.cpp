@@ -1,18 +1,18 @@
 /********************************************************
- ** 
+ **
  **  Network.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 
 #include <Network.h>
 #include <Debug.h>
-#include <Makernet.h>
+#include <MakernetSingleton.h>
 #include <Util.h>
 #include <Datalink.h>
 
@@ -60,10 +60,7 @@ int Network::sendNextPacket()
 				if ( r < 0 ) {
 					DPR( dNETWORK | dERROR, "sendPacket had error:");
 					DLN( r );
-
-
-					// DLN( p->size );
-
+					return 0;
 				}
 				return 1;
 			}
@@ -79,9 +76,9 @@ Interval topOfLoop = Interval(1000);
 void Network::loop()
 {
 
-	if( topOfLoop.hasPassed() )
-		 DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d], addr [%d]\n", 
-		 	Makernet.generation, Makernet.hardwareID, Makernet.deviceType, address );
+	if ( topOfLoop.hasPassed() )
+		DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d], addr [%d]\n",
+		     Makernet.generation, Makernet.hardwareID, Makernet.deviceType, address );
 
 	// Give all services a loop() opportunity
 	// 7/8-can't find cases whwere loop would be needed, experipmetnal removal
@@ -93,7 +90,7 @@ void Network::loop()
 	// }
 
 	if ( Makernet.network.role != slave )
-	 	sendNextPacket();
+		sendNextPacket();
 }
 
 // Notification of a reset. This is called exactly once at the very end of
@@ -104,7 +101,7 @@ void Network::busReset()
 {
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
-		if ( s != NULL ) 
+		if ( s != NULL )
 			s->busReset();
 	}
 }
@@ -118,9 +115,9 @@ void Network::busReset()
 // in the future.)
 
 
-int Network::routePacket( Packet *p  )
+int Network::routePacket( Packet *p )
 {
-	if ( p == NULL )
+	if ( API_CHECK and p == NULL )
 		return -200;
 
 	if ( p->destPort < 0 or p->destPort >= NUM_PORTS )
@@ -162,7 +159,7 @@ int Network::routePacket( Packet *p  )
 
 int Network::registerService( int port, Service* s )
 {
-	if ( port >= NUM_PORTS or port < 0 )
+	if ( API_CHECK && (port >= NUM_PORTS or port < 0 ))
 		return -1;
 	s->port = port;
 	services[port] = s;
@@ -202,11 +199,11 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	     mp->dest, mp->src, mp->destPort, mp->size, packetSize );
 	DLN( dNETWORK );
 
-	if( packetSizeWithCRC != len)
-	DPF( dNETWORK|dWARNING, "%%%%%%%% WARNING: Inbound frame size [%d] != frameSize [%d]; ignoring extras!\n", packetSizeWithCRC, len  )
+	if ( packetSizeWithCRC != len)
+		DPF( dNETWORK | dWARNING, "%%%%%%%% WARNING: Inbound frame size [%d] != frameSize [%d]; ignoring extras!\n", packetSizeWithCRC, len  )
 
-	// Verify checksum
-	uint8_t calculatedCRC = calculateCRC(0, buffer, packetSize );
+		// Verify checksum
+		uint8_t calculatedCRC = calculateCRC(0, buffer, packetSize );
 	uint8_t presentedCRC = buffer[packetSize];
 
 	if ( calculatedCRC != presentedCRC ) {

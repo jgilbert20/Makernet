@@ -17,7 +17,12 @@
 #define ADDR_UNASSIGNED 0x00
 #define ADDR_BROADCAST  0xFF
 
+#define CONTROLLER_SUPPORT 1
 
-#define CONTROLLER_SUPPORT 0
+// This is used throughout the code for calculations of maximum payload size
+#define MAX_MAKERNET_FRAME_LENGTH 25
+
+
+#define API_CHECK 0
 
 #endif

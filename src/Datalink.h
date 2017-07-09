@@ -18,8 +18,7 @@
 // datalink interface is made interchangable so that multiple datalinks such
 // as I2C, RFM, and even ethernet could all be makernet enabled.
 
-
-#define MAX_MAKERNET_FRAME_LENGTH 25
+#include <Packet.h>
 
 // typedef void (*frameReceiveCallback_t)( uint8_t *buffer, uint8_t readSize );
 

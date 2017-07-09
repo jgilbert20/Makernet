@@ -20,7 +20,19 @@ design option 1: the mailbox service is instantiated multiple times, once per ea
 
 design option 2: one mailbox service instance on both the peripheral and on the controller. When an incoming packet comes in for the mailbox, the service somehow routes it elsewhere on the controller.
 
-It seems to me that every baseperipheral should have a mailbox object. My brain is freaking out about vtables, but I actually honestly don't see the problem with them. It makes for the cleanest, best design. Dispatch has to happen ANYWAY, either with a load of switch statements OR with function pointers. FPs are just as fast. The freaking i'm having has to do with the fact that a vtable forces code for all virtual functions (and their call-path dependencies) to be included in the final object code. So just to self-talk here a bit, the fail would be a case where a peripheral device uses an object but doesn't ever have to call function virtual X because that function is ONLY used by the controller but has to keep the code there anyway. If you can avoid that "fail" situation, vtables really honestly add nothing to the code and run way faster than a chain of if statements. So the question is when you make something virtual, are you doing it on something that will be handled by even the tiniest peripheral object? The unsettling question: if there are 10 subclasses of a virtual object in the codebase, but only 1 subclass is ever "touched", will they get optimized out? I assume the answer is yes. And actually vtables are also superior in common routing/framework code over chained IF or switch. In the switch case, you sadly end up with a shit ton of references that the compiler likely HAS to include. 
+It seems to me that every baseperipheral should have a mailbox object. My brain is freaking out about vtables, but I actually honestly don't see the problem with them. It makes for the cleanest, best design. Dispatch has to happen ANYWAY, either with a load of switch statements OR with function pointers. FPs are just as fast. The freaking i'm having has to do with the fact that a vtable forces code for all virtual functions (and their call-path dependencies) to be included in the final object code. So just to self-talk here a bit, the fail would be a case where a peripheral device uses an object but doesn't ever have to call function virtual X because that function is ONLY used by the controller but has to keep the code there anyway. If you can avoid that "fail" situation, vtables really honestly add nothing to the code and run way faster than a chain of if statements. So the question is when you make something virtual, are you doing it on something that will be handled by even the tiniest peripheral object? The unsettling question: if there are 10 subclasses of a virtual object in the codebase, but only 1 subclass is ever "touched", will they get optimized out? I assume the answer is yes - CONFIMED. And actually vtables are also superior in common routing/framework code over chained IF or switch. In the switch case, you sadly end up with a shit ton of references that the compiler likely HAS to include. CONFIRMED with a direct empirical test on code size. Vtables are absolute code size advantage with many possible subclasses. CONFIRMED: compiler is smart - doesn't force unused subclasses to have their code in the base.
+
+Also confirmed that my vtable-heavy and highly generalized code is actually MUCH SMALLER than the original library when a simple #if is put around CONTROLLER-only functions. WIN WIN WIN.
+
+Penalty for 24 bytes for an empty loop
+
+so with this point of view that dispatching is f'ing cheap, the right design appears to be option 1. The service is now the dispatcher and holder of mailboxes. 
+
+
+
+code for shoiwng arm code:
+arm-none-eabi-objdump -S -d DeviceControlService.cpp.o
+
 
 
 

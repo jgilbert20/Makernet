@@ -20,6 +20,7 @@
 // specific types of packets. This doesn't cost anything at runtime and means
 // that the various sub-protocols can be more self-documenting.
 
+
 struct PacketHeader {
 	void clear() { dest = ADDR_UNASSIGNED; src = 0; destPort = 0; size = 0; };
 	uint8_t dest; // The destination address (0=unassigned, 1=controller, FF=bcast)
@@ -28,6 +29,7 @@ struct PacketHeader {
 	uint8_t size; // The size of the payload in bytes
 };
 
+#define MAX_PACKET_PAYLOAD_SIZE (MAX_MAKERNET_FRAME_LENGTH - sizeof(PacketHeader))
 
 // The makernet packet header is a common object used to "address" a packet.
 // For maximimum effciency and economy of processor time and memory, this
