@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  master.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #ifndef ARDUINO //prevent ArduinoIDE from trying to compile this
@@ -17,16 +17,26 @@
 
 EncoderPeripheral encoder;
 
-int main(void)
+DeviceControlService dcs;
+MailboxService ms;
+UNIXSocketDatalink um;
+auto sm = SmallMailbox( 0, "Test mailbox" );
+
+DeviceProfile dp;
+
+int main(int argc, const char * argv[])
 {
 	FAKEHARDWAREID = 0x8877;
-
-	DeviceControlService dcs;
 	Makernet.network.role = Network::master;
-	UNIXSocketDatalink um;
 
 	Makernet.network.useDatalink( &um );
-	Makernet.network.registerService(DCS_DEFAULT_PORT, &dcs);
+	Makernet.network.registerService(PORT_DCS, &dcs);
+	Makernet.network.registerService(PORT_MAILBOX, &ms);
+
+	Makernet.network.address = 10;
+
+	ms.endpoint = &dp;
+	ms.endpoint->address = 160;
 
 	Makernet.initialize();
 

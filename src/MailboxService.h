@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  MailboxService.h
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 
@@ -48,22 +48,20 @@ public:
 	// virtual void loop();
 	virtual void busReset();
 
-	DeviceProfile *endpoint; 
+	DeviceProfile *endpoint;
 	Mailbox *mailboxes[MAX_MAILBOXS_PER_SERVICE];
 
-   enum Command
-   {
-      Update,
-      Acknowledge
-   };
+	// Setters and getters
+	void set( int index, Mailbox& m );
+	Mailbox *get( int index );
 
 private:
 	int nextPendingMailboxIndex();
-void pointPacketToEndpoint( Packet *p );
+	void pointPacketToEndpoint( Packet *p );
 
 // 	MailboxDictionary *mailboxDict;
 };
 
 
 
-#endif 
+#endif

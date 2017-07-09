@@ -114,15 +114,22 @@ int MailboxService::handlePacket( Packet *p )
 }
 
 
-
-// void MailboxService::loop()
-// {
-
-// }
-
 void MailboxService::busReset()
 {
-
+	// TBD
 }
 
+
+void MailboxService::set( int index, Mailbox& m )
+{
+	if ( index < MAX_MAILBOXS_PER_SERVICE )
+		mailboxes[index] = &m;
+}
+
+Mailbox *MailboxService::get( int index )
+{
+	if ( index < MAX_MAILBOXS_PER_SERVICE )
+		return mailboxes[index];
+	return NULL;
+}
 
