@@ -81,6 +81,11 @@ inline void printDebug( int i )
 	printf( "%d", i );
 }
 
+inline void printDebug( uint32_t i )
+{
+	printf( "%u", i );
+}
+
 inline void printDebug( uint8_t i, int format)
 {
 	if ( format == HEX ) {

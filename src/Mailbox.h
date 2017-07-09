@@ -65,13 +65,10 @@ public:
 // like an RGB value or an integer.  It always uses opcode 0 to update
 // (transmission of whole value) and it doesn't worry about version numbers.
 
-#define MAILBOX_SMALLFORMAT_SIZE 4
-
 class SmallMailbox : public Mailbox {
 
 public:
 	SmallMailbox(uint8_t configFlags, const char *d);
-	uint8_t __contents[4];
 
 	virtual void reset();
 	virtual void trigger();
@@ -81,6 +78,10 @@ public:
 
 	void setLong( uint32_t v );
 	uint32_t getLong();
+
+private:
+		uint32_t __contents; 
+
 };
 
 
