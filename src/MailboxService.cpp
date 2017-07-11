@@ -81,7 +81,7 @@ int MailboxService::pollPacket( Packet *p )
 
 	int nextMailbox = nextPendingMailboxIndex();
 	if ( nextMailbox >= 0 ) {
-			DPF( dMAILBOX, "Mailbox changed %d\n", nextMailbox );
+		DPF( dMAILBOX, "Mailbox changed %d\n", nextMailbox );
 		pointPacketToEndpoint( p );
 		MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p->payload;
 		msg->mailbox = nextMailbox;
@@ -107,7 +107,7 @@ int MailboxService::handlePacket( Packet *p )
 	DPF( dMAILBOX, "Incoming mailbox packet src[%d] size[%d] mailbox[%d]\n", p->src, p->size, msg->mailbox );
 
 	uint8_t i = msg->mailbox;
-	if( i < 0 or i >= MAX_MAILBOXS_PER_SERVICE )
+	if ( i < 0 or i >= MAX_MAILBOXS_PER_SERVICE )
 		return -4501;
 
 	if ( mailboxes[i] != NULL ) {

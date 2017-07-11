@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  MakernetSingleton.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #include <MakernetSingleton.h>
@@ -14,7 +14,7 @@
 #include <ArduinoAPI.h>
 #include <BasePeripheral.h>
 
-// Framework users should call this once during program setup. 
+// Framework users should call this once during program setup.
 
 void _Makernet::initialize()
 {
@@ -22,7 +22,7 @@ void _Makernet::initialize()
 	generation = getRandomNumber16();
 	hardwareID = getHardwareID();
 	network.initialize();
-#if CONTROLLER_SUPPORT 
+#if CONTROLLER_SUPPORT
 	BasePeripheral::initializeAllPeripherals();
 #endif
 }
@@ -40,7 +40,7 @@ void _Makernet::busReset()
 {
 	network.busReset();
 
-#if CONTROLLER_SUPPORT 
+#if CONTROLLER_SUPPORT
 	BasePeripheral::busResetAllPeripherals();
 #endif
 

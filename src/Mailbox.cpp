@@ -103,10 +103,10 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 	if ( msg->command == SmallMailboxMessage::Command::ACK_VALUE ) {
 
-		if( msg->value == __contents )
+		if ( msg->value == __contents )
 			synchronized = 1;
 		else
-			DPR( dMAILBOX|dWARNING, "&&&& Mailbox ACK incorrect, not clearing sync flag" );
+			DPR( dMAILBOX | dWARNING, "&&&& Mailbox ACK incorrect, not clearing sync flag" );
 
 		DPR( dMAILBOX, "&&&& Mailbox value acknowledgement: [");
 		DPR( dMAILBOX, description );
@@ -129,7 +129,7 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 void SmallMailbox::setLong( uint32_t v )
 {
-	__contents = v; 
+	__contents = v;
 
 	synchronized = 0;
 
