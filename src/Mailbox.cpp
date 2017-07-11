@@ -14,17 +14,13 @@
 #include <Debug.h>
 #include <Util.h>
 #include <Globals.h>
+#include <Makernet.h>
 
 #include <strings.h>
 
-void Mailbox::reset()
+void Mailbox::busReset()
 {
-	// firstInvalidByte = 0;
-	// lastInvalidByte = size;
-	// version++;
-	synchronized = 1;
-	if ( contents != NULL and size > 0 )
-		memset( contents, 0, size ) ;
+
 }
 
 SmallMailbox::SmallMailbox(uint8_t configFlags, const char *d)
@@ -33,17 +29,26 @@ SmallMailbox::SmallMailbox(uint8_t configFlags, const char *d)
 	flags = configFlags;
 	size = sizeof( __contents );
 	description = d;
-	reset();
+	if ( contents != NULL and size > 0 )
+		memset( contents, 0, size );
+	synchronized = 1;
+	callerChanged = 0;
 }
 
-void SmallMailbox::reset()
+void SmallMailbox::busReset()
 {
-	Mailbox::reset();
+	// Bus reset should force all caller changed information to be re-sent
+	// over the network.
+	if ( callerChanged )
+		synchronized = 0;
+	else
+		synchronized = 1;
 }
 
 void SmallMailbox::trigger()
 {
 	synchronized = 0;
+	callerChanged = 1;
 }
 
 int SmallMailbox::hasPendingChanges()
@@ -52,7 +57,7 @@ int SmallMailbox::hasPendingChanges()
 }
 
 struct SmallMailboxMessage {
-	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE } command;
+	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE, NACK_VALUE } command;
 	uint32_t value;
 } __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
 
@@ -84,8 +89,29 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 	auto *msg = reinterpret_cast<SmallMailboxMessage *>(buffer);
 
 	if ( msg->command == SmallMailboxMessage::Command::SEND_VALUE ) {
+		if ( callerChanged ) {
+			// Contention case. Here both sides have updated the mailbox.
+			DPR( dMAILBOX, "&&&& Contention: Incoming mailbox push when callerChanged=1");
+			DLN( dMAILBOX );
+
+			if ( Makernet.network.role == Network::master ) {
+				// In the contention case, the master overides. We ack receipt of the value even though
+				// we don't accept it. And we trigger a synchronization on our end.
+				DLN( dMAILBOX, "&&&& Contention: Disregarding incoming value");
+				synchronized = 0;
+				msg->command = SmallMailboxMessage::Command::ACK_VALUE;
+				return (sizeof( SmallMailboxMessage ));
+			} else {
+				DLN( dMAILBOX, "&&&& Contention: proceeding with normal update that overides our value");
+			}
+		}
+
+		// A normal update - accept the packet's data, mark internally as
+		// synchronized, and clear caller-changed flag
 		__contents = msg->value;
+
 		synchronized = 1;
+		callerChanged = 0;
 
 		DPR( dMAILBOX, "&&&& Mailbox value recv: [");
 		DPR( dMAILBOX, description );
@@ -95,17 +121,19 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		DPR( dMAILBOX, __contents );
 		DLN( dMAILBOX, "]");
 
+		// Reformat the message and send it back as an ACK
 		msg->command = SmallMailboxMessage::Command::ACK_VALUE;
 
 		return (sizeof( SmallMailboxMessage ));
 	}
 
 	if ( msg->command == SmallMailboxMessage::Command::ACK_VALUE ) {
-
+		// If the ACK does not contain the lastest value, remain
+		// unsynchronized so the update will occur on the next pass
 		if ( msg->value == __contents )
 			synchronized = 1;
 		else
-			DPR( dMAILBOX | dWARNING, "&&&& Mailbox ACK incorrect, not clearing sync flag" );
+			DLN( dMAILBOX | dWARNING, "&&&& Mailbox ACK incorrect, not clearing sync flag" );
 
 		DPR( dMAILBOX, "&&&& Mailbox value acknowledgement: [");
 		DPR( dMAILBOX, description );
@@ -118,6 +146,8 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		return 0;
 	}
 
+
+
 	return 1;
 }
 
@@ -126,6 +156,7 @@ void SmallMailbox::setLong( uint32_t v )
 	__contents = v;
 
 	synchronized = 0;
+	callerChanged = 1;
 
 	DPR( dMAILBOX, "&&&& MailboxChange: [");
 	DPR( dMAILBOX, description );
@@ -134,7 +165,6 @@ void SmallMailbox::setLong( uint32_t v )
 	DPR( dMAILBOX, "] as long: [");
 	DPR( dMAILBOX, __contents );
 	DLN( dMAILBOX, "]");
-
 }
 
 uint32_t SmallMailbox::getLong()

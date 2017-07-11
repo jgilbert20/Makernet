@@ -17,7 +17,6 @@
 
 EncoderPeripheral encoder;
 
-MailboxService ms;
 UNIXSocketDatalink um;
 auto sm = SmallMailbox( 0, "Test mailbox" );
 
@@ -31,13 +30,9 @@ int main(int argc, const char * argv[])
 	Makernet.network.role = Network::master;
 
 	Makernet.network.useDatalink( &um );
-	Makernet.network.registerService(PORT_MAILBOX, &ms);
 
 	Makernet.network.address = 10;
 
-	ms.set( 0, sm );
-	ms.endpoint = &dp;
-	ms.endpoint->address = 160;
 
 	Makernet.initialize();
 
@@ -58,7 +53,7 @@ void handleCommand(char *cmd, int len )
 	printf( "===--> %s\n", cmd );
 	int v = atoi(cmd);
 	printf( "Set mailbox to: %i\n", v );
-	sm.setLong( v );
+	encoder.encoderMailboxSvc.position.setLong( v );
 }
 
 

@@ -58,6 +58,8 @@ public:
 	// Called when the datalink layer has been cleared to send a frame. Return
 	// positive values if a frame has been populated, zero if not
 	int pollFrame( uint8_t *buffer, uint8_t len );
+	// Scans network stack for a packet to send
+	int pollPacket( Packet *p );
 	// A universal way to send a packet
 	int sendPacket( uint8_t destination, uint8_t src, uint8_t port, uint8_t size, uint8_t *payload);
 	int sendPacket( uint8_t address, uint8_t port, uint8_t size, uint8_t *payload);

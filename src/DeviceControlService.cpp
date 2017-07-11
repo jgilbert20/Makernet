@@ -18,7 +18,7 @@
 // Called at configure time
 void DeviceControlService::initialize()
 {
-	configure(); 
+	configure();
 }
 
 // Called at configure time
@@ -194,7 +194,9 @@ int DeviceControlService::pollPacket(Packet *p)
 void DeviceControlService::busReset()
 {
 	DLN( dDCS, "DCS: handleBusReset...");
-	// DLN( dALL, "DCS Loop handler");
+	DPR( dDCS, "DCS: Releaseing address" );
+
+	Makernet.network.address = ADDR_UNASSIGNED;
 }
 
 

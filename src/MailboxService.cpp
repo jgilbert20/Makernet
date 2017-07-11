@@ -55,7 +55,6 @@ void MailboxService::configure()
 
 }
 
-
 int MailboxService::nextPendingMailboxIndex()
 {
 	for ( int i = 0 ; i < MAX_MAILBOXS_PER_SERVICE ; i++ )
@@ -67,9 +66,14 @@ int MailboxService::nextPendingMailboxIndex()
 
 void MailboxService::pointPacketToEndpoint( Packet *p )
 {
+	if ( defaultEndpoint == NULL ) {
+		DLN( dNETWORK, "ERROR: packet cannot be generated properly, endpoint not configured!" );
+		return;
+	}
+
 	p->clear();
 	p->src = Makernet.network.address;
-	p->dest = endpoint->address;
+	p->dest = defaultEndpoint->address;
 	p->destPort = PORT_MAILBOX;
 
 	DPR( dNETWORK, "Point: ");
@@ -77,6 +81,7 @@ void MailboxService::pointPacketToEndpoint( Packet *p )
 	DLN( dNETWORK );
 
 	DPF( dMAILBOX, "Src = %d\n", p->dest );
+
 }
 
 
@@ -86,7 +91,11 @@ int MailboxService::pollPacket( Packet *p )
 
 	// Check if we have a valid destination configured
 
-	if ( endpoint == NULL or endpoint->address == ADDR_UNASSIGNED ) {
+	if ( defaultEndpoint == NULL or defaultEndpoint->address == ADDR_UNASSIGNED ) {
+		DLN( dNETWORK, "WARNING: mailbox disabled due to defaultEnpoint not being set" );
+		DPF( dNETWORK, "defaultEndpoint null =%d\n", defaultEndpoint == NULL );
+		if( defaultEndpoint != NULL )
+			DPF( dNETWORK, "defaultEndpoint addr =%d\n", defaultEndpoint->address );
 		return 0;
 	}
 
@@ -115,7 +124,7 @@ int MailboxService::handlePacket( Packet *p )
 
 	// Check if we have a valid destination configured
 
-	if ( endpoint == NULL or endpoint->address == ADDR_UNASSIGNED ) {
+	if ( defaultEndpoint == NULL or defaultEndpoint->address == ADDR_UNASSIGNED ) {
 		DPF( dMAILBOX | dERROR, "handleMessage dropped packet, no endpoint configured" );
 		return -4502;
 	}
@@ -147,6 +156,12 @@ int MailboxService::handlePacket( Packet *p )
 void MailboxService::busReset()
 {
 	DLN( dMAILBOX, "MailboxService: Bus Reset...");
+
+	for ( int i = 0 ; i < MAX_MAILBOXS_PER_SERVICE ; i++ )
+		if ( mailboxes[i] != NULL ) {
+			mailboxes[i]->hasPendingChanges();
+			DPF( dMAILBOX, "MailboxService: Reset mailbox %d\n", i );
+		}
 }
 
 

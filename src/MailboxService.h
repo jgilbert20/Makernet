@@ -49,7 +49,6 @@ public:
 	// virtual void loop();
 	virtual void busReset();
 
-	DeviceProfile *endpoint;
 	Mailbox *mailboxes[MAX_MAILBOXS_PER_SERVICE];
 
 	// Setters and getters

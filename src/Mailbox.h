@@ -49,10 +49,12 @@ public:
 	const char *description;
 	uint8_t size;
 	uint8_t synchronized;
+	// 0 if the last update was over net, 1 if last update from API
+	uint8_t callerChanged;
 
 	uint8_t flags;
 
-	virtual void reset();
+	virtual void busReset();
 	virtual void trigger() = 0;
 	virtual int generateMessage( uint8_t *buffer, int size ) = 0;
 	virtual int handleMessage( uint8_t *buffer, int size ) = 0;
@@ -70,7 +72,7 @@ class SmallMailbox : public Mailbox {
 public:
 	SmallMailbox(uint8_t configFlags, const char *d);
 
-	virtual void reset();
+	virtual void busReset();
 	virtual void trigger();
 	virtual int generateMessage( uint8_t *buffer, int size );
 	virtual int handleMessage( uint8_t *buffer, int size );

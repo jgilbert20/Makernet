@@ -114,11 +114,28 @@ int BasePeripheral::registerService( int port, Service* s )
 
 	s->port = port;
 	services[port] = s;
+	s->defaultEndpoint = &connectedDevice;
 	s->initialize();
 	return 1;
 }
 
 
+int BasePeripheral::pollPacket( Packet *p )
+{
+	DLN( dNETWORK, "BP:pollPacket()");
+	for (BasePeripheral *bp = _firstPeripheral; bp != NULL ; bp = bp->_nextPeripheral)
+		for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+			Service *s = bp->services[i];
+			if ( s != NULL ) {
+				int retValue = s->pollPacket(p);
+				if ( retValue > 0 )
+					return retValue;
+				if ( retValue < 0 )
+					DPR( dNETWORK, "WARNING: Poll-packet returned negative, something wrong...");
+			}
+		}
+	return 0;
+}
 
 // Called by the framework to find the base peripheral corresponding to a
 // numeric address, otherwise NULL

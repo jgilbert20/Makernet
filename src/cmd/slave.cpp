@@ -33,8 +33,8 @@ int main(int argc, const char * argv[])
 	Makernet.network.registerService(PORT_MAILBOX, &ms);
 
 	ms.set( 0, sm );
-	ms.endpoint = &dp; 
-	ms.endpoint->address = 10;
+	ms.defaultEndpoint = &dp; 
+	ms.defaultEndpoint->address = 10;
 
 	Makernet.deviceType = DeviceType::Encoder;
 

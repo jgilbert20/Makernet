@@ -58,7 +58,8 @@ public:
 	// Called once during init, and then again when controller has lost state
 	virtual void busReset() = 0;
 	int port;
-
+	// Most services will have a default endpoint
+	DeviceProfile *defaultEndpoint; 
 };
 
 #endif

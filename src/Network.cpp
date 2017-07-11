@@ -41,10 +41,42 @@ void Network::useDatalink( Datalink *dl)
 	datalink = dl;
 }
 
+
+// Internal handler function that is called at times when the framework is
+// ready to send a  packet. This can occur in two different cases. One of them
+// is during the ::loop() operation. The second is in master/slave
+// communication when the slave is explicity polled for anything it wants to
+// send back. Returns positive values in the case of a packet found, otherwise
+// zero.
+
+int Network::pollPacket(Packet *p)
+{
+	DLN( dNETWORK, "Network::polling all services and peripherals for packets");
+
+	// Find the next service that has a packet to send
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+		if ( s != NULL ) {
+			int retValue = s->pollPacket(p);
+			if ( retValue > 0 )
+				return retValue;
+		}
+	}
+
+	// If we are the master, do the same for every BasePeripheral object
+	if ( role == Network::master ) {
+		int r = BasePeripheral::pollPacket(p);
+		if ( r > 0 )
+			return r;
+	}
+
+	return 0;
+}
+
 // Internal handler that polls all services for their next packet and
 // generates exactly one packet onto the wire. This route is only used in
-// peer-to-peer, not for I2C-like transactional communciation, and it is called
-// by the master loop.
+// peer-to-peer, not for I2C-like transactional communciation, and it is
+// called by the master loop. Returns 1 if a packet was snet, otherwise 0. 
 
 int Network::sendNextPacket()
 {
@@ -52,22 +84,16 @@ int Network::sendNextPacket()
 	p->clear();
 	p->src = address;
 
-//	DLN( dNETWORK, "Seeking packets to send...");
-
-	// Find the next service that has a packet to send
-	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
-		Service *s = services[i];
-		if ( s != NULL ) {
-			if ( s->pollPacket(p) > 0 ) {
-				int r = sendPacket( p );
-				if ( r < 0 ) {
-					DPR( dNETWORK | dERROR, "sendPacket had error:");
-					DLN( r );
-					return 0;
-				}
-				return 1;
-			}
+	int rval = pollPacket( p );
+	if ( rval > 0 )
+	{
+		int r = sendPacket( p );
+		if ( r < 0 ) {
+			DPR( dNETWORK | dERROR, "sendPacket had error:");
+			DLN( r );
+			return 0;
 		}
+		return 1;
 	}
 	return 0;
 }
@@ -83,17 +109,14 @@ void Network::loop()
 		DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d], addr [%d]\n",
 		     Makernet.generation, Makernet.hardwareID, Makernet.deviceType, address );
 
-	// Give all services a loop() opportunity
-	// 7/8-can't find cases whwere loop would be needed, experipmetnal removal
-
-	// for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
-	// 	Service *s = services[i];
-	// 	 if ( s != NULL )
-	// 	 		s->loop();
-	// }
-
+	// Send up to three packets per loop
 	if ( Makernet.network.role != slave )
-		sendNextPacket();
+		for ( int i = 0 ; i < 3 ; i++ ) {
+			DLN( dNETWORK, "******");
+			DPF( dNETWORK, "Network: Requesting sendNextPacket time# %d\n", i );			
+			if( sendNextPacket() == 0 )
+				return; 
+		}
 }
 
 // Notification of a reset. This is called exactly once at the very end of
@@ -151,14 +174,14 @@ int Network::routePacket( Packet *p )
 	        p->src != ADDR_UNASSIGNED and p->dest != ADDR_BROADCAST ) {
 		BasePeripheral *bp = BasePeripheral::findByAddress( p->src );
 
-		if( bp != NULL )
+		if ( bp != NULL )
 			service = bp->services[p->destPort];
 		else
 			DLN( dNETWORK, "Found a peripheral but no matching service");
 	}
 
-	if( service == NULL )
-		return( -5203 );
+	if ( service == NULL )
+		return ( -5203 );
 
 	int retVal =  service->handlePacket( p );
 
@@ -250,9 +273,6 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 		DPR( dNETWORK | dERROR, s );
 		DLN( dNETWORK | dERROR );
 	}
-
-
-
 }
 
 // Packet *preparePacketShortcut( uint8_t addr, uint8_t )
@@ -268,31 +288,24 @@ int Network::pollFrame( uint8_t *buffer, uint8_t len )
 {
 	Packet *p = (Packet *)buffer;
 
-	// Find the next service that has a packet to send
-	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
-		Service *s = services[i];
-		if ( s != NULL ) {
-			int pollRetValue = s->pollPacket(p);
-			if ( pollRetValue > 0 ) {
-				int finalRetValue = finalizePacketToFrame( p );
-				if ( finalRetValue > 0 )
-					return finalRetValue;
-				else {
-					DPR( dNETWORK | dERROR, "Return packet failed to finalize: err");
-					DPR( dNETWORK | dERROR, finalRetValue );
-					DLN( dNETWORK | dERROR, );
-				}
-			}
-			else if ( pollRetValue < 0) {
-				DPR( dNETWORK | dERROR, "pollPacket returned negative?? Something wrong");
-				DLN( dNETWORK | dERROR );
-			}
+
+	int pollRetValue = pollPacket(p);
+	if ( pollRetValue > 0 ) {
+		int finalRetValue = finalizePacketToFrame( p );
+		if ( finalRetValue > 0 )
+			return finalRetValue;
+		else {
+			DPR( dNETWORK | dERROR, "Return packet failed to finalize: err");
+			DPR( dNETWORK | dERROR, finalRetValue );
+			DLN( dNETWORK | dERROR, );
 		}
 	}
-
+	else if ( pollRetValue < 0) {
+		DPR( dNETWORK | dERROR, "pollPacket returned negative?? Something wrong");
+		DLN( dNETWORK | dERROR );
+	}
 	return 0;
 }
-
 
 // sendPacket(..) is the core function that assembles a packet into a
 // frame. The resulting frame looks like this:
@@ -308,8 +321,6 @@ int Network::sendPacket( uint8_t destination, uint8_t src, uint8_t destPort, uin
 {
 	if ( size >= MAX_MAKERNET_FRAME_LENGTH - 1 )
 		return -100;
-
-
 
 	uint8_t *buffer = datalink->frameBuffer;
 

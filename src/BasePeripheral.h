@@ -46,6 +46,7 @@ public:
 	static BasePeripheral *findByAddress( uint8_t address );
 	// Given a device network description, returns a proxy object if one exists
 	static BasePeripheral *findPeripheralObjectForDevice( DeviceProfile *dp );
+	static int pollPacket( Packet *p );
 
 	static void initializeAllPeripherals();
 	static void busResetAllPeripherals();
@@ -53,9 +54,10 @@ public:
 	// Internal tracking UUID
 	long _uuid;
 
-	// Contains the connection address details
+	// Contains the connection address details; pointers to this are shared by
+	// connected services
 	DeviceProfile connectedDevice;
-
+	
 	int registerService( int port, Service* s );
 	Service *services[NUM_PORTS];
 
