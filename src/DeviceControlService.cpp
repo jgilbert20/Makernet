@@ -94,7 +94,7 @@ int DeviceControlService::handlePacket(Packet *p)
 				   );
 
 
-				DPF( dDCS|dRESET, "RESET DCS: Issuing reset to proxy");
+				DPF( dDCS | dRESET, "RESET DCS: Issuing reset to proxy");
 				// Tell the proxy object to reset its state
 				proxy->busReset();
 
@@ -161,6 +161,12 @@ int DeviceControlService::handlePacket(Packet *p)
 	if ( dm->command == DCS_BUS_RESET and
 	        Makernet.network.role == Network::slave ) {
 
+		DLN( dDCS | dRESET, "DCS: Received network-wide reset ++++++++++++++++");
+
+		// Tell the whole framework to reset all internal state.
+		// This will have the side effect of clearing out the current paired address
+		// but also resets other service objects like mailboxes
+		Makernet.busReset();
 	}
 
 
@@ -170,12 +176,23 @@ int DeviceControlService::handlePacket(Packet *p)
 
 int DeviceControlService::pollPacket(Packet *p)
 {
-	// Generate the general poll messages if I am the master
+	// Check if we are being asked to reset the bus
+	if ( CONTROLLER_SUPPORT && Makernet.network.role == Network::master and isResettingBus )
+	{
+		isResettingBus = false;
+		DLN( dDCS | dRESET, "DCS: Issuing bus reset to network ++++++++++++++++");
+		p->dest = ADDR_BROADCAST;
+		p->destPort = 0;
+		p->size = 1;
+		p->payload[0] = DCS_BUS_RESET;
+		return 1;
+	}
 
+	// Generate the general poll messages if I am the master
 	if ( CONTROLLER_SUPPORT && Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( dDCS|dPOLL, "DCS: Time for a general network polling packet!");
+			DLN( dDCS | dPOLL, "DCS: Time for a general network polling packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = 1;
@@ -184,7 +201,6 @@ int DeviceControlService::pollPacket(Packet *p)
 		}
 
 	// If I'm a device waiting for an address assignment, generate a request
-
 	if ( Makernet.network.role == Network::slave &&
 	        Makernet.network.address == ADDR_UNASSIGNED )
 		if ( pollingTimer.hasPassed() )
@@ -221,7 +237,9 @@ void DeviceControlService::busReset()
 
 void DeviceControlService::issueBusReset()
 {
-	DLN( dDCS, "************* FUTURE HOME OF ISSUE BUS RESET!!!");
+	isResettingBus = true;
+
+
 }
 
 

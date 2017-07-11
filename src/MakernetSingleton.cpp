@@ -25,9 +25,12 @@ void _Makernet::initialize()
 #if CONTROLLER_SUPPORT
 	BasePeripheral::initializeAllPeripherals();
 #endif
-	// Issue our first bus reset
+	// Issue our first bus reset, the first one goes internally
 	busReset();
-	issueBusReset();
+
+	if ( CONTROLLER_SUPPORT and network.role == Network::master )
+		issueBusReset();
+
 }
 
 // busReset() is a special verb that is intended to reset all state around the

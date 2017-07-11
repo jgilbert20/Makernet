@@ -30,6 +30,7 @@ public:
 
 private:
 
+	boolean isResettingBus = false;
 	Interval pollingTimer = Interval(1000);
 };
 
