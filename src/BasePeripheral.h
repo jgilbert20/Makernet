@@ -39,7 +39,7 @@ public:
 	// Configure is called 1x at system configure time by the superclass and
 	// is intended to be overridden
 	virtual void configure();
-	// Called when there has been a global bus-reset
+	// Called when there has been a global bus-reset, also when the device connects
 	virtual void busReset();
 
 	// Given an address, returns a proxy object if one exists

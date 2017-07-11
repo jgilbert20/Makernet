@@ -33,9 +33,10 @@ private:
 	Interval pollingTimer = Interval(1000);
 };
 
-#define DCS_REQUEST_ADDRESS 0x50
-#define DCS_ASSIGN_ADDRESS 0x51
-#define DCS_GENERAL_POLL 0x55
+#define DCS_REQUEST_ADDRESS  0x50
+#define DCS_ASSIGN_ADDRESS   0x51
+#define DCS_GENERAL_POLL     0x55
+#define DCS_BUS_RESET        0x56
 
 #define DCS_DEFAULT_PORT 0x00
 

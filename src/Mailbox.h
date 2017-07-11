@@ -13,6 +13,7 @@
 #define MAILBOX_H
 
 #include <Types.h>
+#include <Interval.h>
 
 #define MB_ROLE_CONTROLLER 0x1
 #define MB_ROLE_DEVICE 0x2
@@ -77,6 +78,8 @@ public:
 	virtual int generateMessage( uint8_t *buffer, int size );
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
+
+	Interval retryTimer = Interval(100);
 
 	void setLong( uint32_t v );
 	uint32_t getLong();

@@ -39,21 +39,31 @@ void SmallMailbox::busReset()
 {
 	// Bus reset should force all caller changed information to be re-sent
 	// over the network.
+	retryTimer.trigger();
 	if ( callerChanged )
 		synchronized = 0;
 	else
 		synchronized = 1;
+
+	DPF( dMAILBOX | dRESET, "&&&& RESET: [%s] - sync=%d callerChanged=%d value=%d\n",
+	     description,synchronized, callerChanged, __contents  );
 }
 
 void SmallMailbox::trigger()
 {
 	synchronized = 0;
 	callerChanged = 1;
+	retryTimer.trigger();
 }
 
 int SmallMailbox::hasPendingChanges()
 {
+	if ( !retryTimer.ready() )
+		return 0;
 	return !synchronized;
+
+		DPF( dMAILBOX, "&&&& HPC??: [%s] - sync=%d callerChanged=%d value=%d\n",
+	     description,synchronized, callerChanged, __contents  );
 }
 
 struct SmallMailboxMessage {
@@ -75,6 +85,8 @@ int SmallMailbox::generateMessage( uint8_t *buffer, int size )
 
 	msg->command = SmallMailboxMessage::Command::SEND_VALUE;
 	msg->value = __contents;
+
+	retryTimer.reset();
 
 	return sizeof( SmallMailboxMessage );
 }
@@ -154,6 +166,8 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 void SmallMailbox::setLong( uint32_t v )
 {
 	__contents = v;
+
+	retryTimer.trigger();
 
 	synchronized = 0;
 	callerChanged = 1;

@@ -18,6 +18,9 @@ class Interval {
 public:
 	Interval( uint32_t period );
 	boolean hasPassed();
+	void reset();
+	void trigger();
+	boolean ready();
 private:
 	uint32_t _lastFired;
 	uint32_t _period;

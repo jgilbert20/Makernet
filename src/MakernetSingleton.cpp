@@ -41,7 +41,7 @@ void _Makernet::initialize()
 
 void _Makernet::busReset()
 {
-	DLN( dSTATUSMSG, "Makernet: Handling bus reset request!" );
+	DLN( dSTATUSMSG, "Makernet: Handling bus reset request on whole framework!" );
 	network.busReset();
 
 #if CONTROLLER_SUPPORT

@@ -87,8 +87,7 @@ void MailboxService::pointPacketToEndpoint( Packet *p )
 
 int MailboxService::pollPacket( Packet *p )
 {
-	DLN( dMAILBOX, "Mailbox poll");
-
+	DLN( dMAILBOX|dPOLL, "POLL: Mailbox poll");
 	// Check if we have a valid destination configured
 
 	if ( defaultEndpoint == NULL or defaultEndpoint->address == ADDR_UNASSIGNED ) {
@@ -155,11 +154,11 @@ int MailboxService::handlePacket( Packet *p )
 
 void MailboxService::busReset()
 {
-	DLN( dMAILBOX, "MailboxService: Bus Reset...");
+	DLN( dMAILBOX|dRESET, "MailboxService: Bus Reset...");
 
 	for ( int i = 0 ; i < MAX_MAILBOXS_PER_SERVICE ; i++ )
 		if ( mailboxes[i] != NULL ) {
-			mailboxes[i]->hasPendingChanges();
+			mailboxes[i]->busReset();
 			DPF( dMAILBOX, "MailboxService: Reset mailbox %d\n", i );
 		}
 }

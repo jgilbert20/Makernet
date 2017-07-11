@@ -14,13 +14,11 @@
 
 #ifdef ARDUINO
 
-
 #include <Debug.h>
 #include <Network.h>
 #include <Datalink.h>
 #include <Makernet.h>
 #include <Types.h>
-
 
 // Implements a Datalink layer using Arduino I2C. This code is
 // ONLY intended to run on MCUs.

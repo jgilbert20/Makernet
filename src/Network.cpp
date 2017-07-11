@@ -125,6 +125,7 @@ void Network::loop()
 
 void Network::busReset()
 {
+	DLN( dNETWORK|dRESET, "Network: Resetting all services");
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL )
@@ -188,8 +189,8 @@ int Network::routePacket( Packet *p )
 	if ( retVal > 0 )
 	{
 		DLN( dROUTE, "Route: Immediate packet sendback!" );
-		if ( Makernet.network.role == Network::slave )
-			DLN( dALL, "WARNING: not fully tested code path!");
+		// if ( Makernet.network.role == Network::slave )
+		// 	DLN( dALL, "WARNING: not fully tested code path!");
 		int retValSend = sendPacket( p );
 		if ( retValSend < 0 )
 		{

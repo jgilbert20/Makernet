@@ -26,11 +26,12 @@
 #define dMAILBOX      1 << 9
 #define dROUTE        1 << 10
 #define dPOLL         1 << 11
+#define dRESET        1 << 12
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
-#define DEBUGLEVEL    dDATALINK|dDCS|dERROR|dWARNING|dSTATUSMSG|dMAILBOX
+#define DEBUGLEVEL    dDCS|dERROR|dWARNING|dSTATUSMSG|dMAILBOX|dRESET
 
 // dMAILBOX|dWARNING|dERROR|dSTATUSMSG
 //   (dSTATUSMSG|dOBJFRAMEWORK)

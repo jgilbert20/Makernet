@@ -59,14 +59,6 @@ void BasePeripheral::busResetAllPeripherals()
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral) {
 		p->connectedDevice.reset();
 
-
-		// Issue bus reset to all services if any
-		for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
-			Service *s = p->services[i];
-			if ( s != NULL )
-				s->busReset();
-		}
-
 		p->busReset();
 
 		// Not sure what else needs to go here..? Do we force a disconnect and reconnect?
@@ -78,7 +70,14 @@ void BasePeripheral::busResetAllPeripherals()
 
 void BasePeripheral::busReset()
 {
-	DLN( dOBJFRAMEWORK, "Base peripheral got a bus request..");
+	DLN( dOBJFRAMEWORK | dRESET, "RESET: Base peripheral got a bus request..");
+
+	// Issue bus reset to all services if any
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		Service *s = services[i];
+		if ( s != NULL )
+			s->busReset();
+	}
 }
 
 BasePeripheral::~BasePeripheral() {
@@ -131,7 +130,7 @@ int BasePeripheral::pollPacket( Packet *p )
 				if ( retValue > 0 )
 					return retValue;
 				if ( retValue < 0 )
-					DPR( dPOLL|dWARNING, "WARNING: Poll-packet returned negative, something wrong...");
+					DPR( dPOLL | dWARNING, "WARNING: Poll-packet returned negative, something wrong...");
 			}
 		}
 	return 0;

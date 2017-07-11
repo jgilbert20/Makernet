@@ -93,6 +93,11 @@ int DeviceControlService::handlePacket(Packet *p)
 				     proxy->connectedDevice.hardwareID
 				   );
 
+
+				DPF( dDCS|dRESET, "RESET DCS: Issuing reset to proxy");
+				// Tell the proxy object to reset its state
+				proxy->busReset();
+
 				// Generate address assignment message
 
 				p->clear(); // clear the packet header
@@ -137,6 +142,12 @@ int DeviceControlService::handlePacket(Packet *p)
 		DPR( dDCS, newAddress );
 		DLN( dDCS );
 
+
+		// Tell the whole framework to reset all internal state.
+		// This will have the side effect of clearing out the current paired address
+		// but also resets other service objects like mailboxes
+		Makernet.busReset();
+
 		// Makernet.network.controller.connected = true;
 		// Makernet.network.controller.deviceType = DeviceType::Controller;
 		// Makernet.network.controller.address = 0;
@@ -145,6 +156,14 @@ int DeviceControlService::handlePacket(Packet *p)
 
 		return 0;
 	}
+
+
+	if ( dm->command == DCS_BUS_RESET and
+	        Makernet.network.role == Network::slave ) {
+
+	}
+
+
 	return 0;
 }
 
@@ -156,7 +175,7 @@ int DeviceControlService::pollPacket(Packet *p)
 	if ( CONTROLLER_SUPPORT && Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( dDCS, "DCS: Time for a general network polling packet!");
+			DLN( dDCS|dPOLL, "DCS: Time for a general network polling packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = 1;
@@ -194,7 +213,7 @@ int DeviceControlService::pollPacket(Packet *p)
 void DeviceControlService::busReset()
 {
 	DLN( dDCS, "DCS: handleBusReset...");
-	DPR( dDCS, "DCS: Releaseing address" );
+//	DPR( dDCS, "DCS: Releaseing address" );
 
 	Makernet.network.address = ADDR_UNASSIGNED;
 }
