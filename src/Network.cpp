@@ -51,7 +51,7 @@ void Network::useDatalink( Datalink *dl)
 
 int Network::pollPacket(Packet *p)
 {
-	DLN( dNETWORK, "Network::polling all services and peripherals for packets");
+	DLN( dPOLL, "Network::polling all services and peripherals for packets");
 
 	// Find the next service that has a packet to send
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
@@ -177,7 +177,7 @@ int Network::routePacket( Packet *p )
 		if ( bp != NULL )
 			service = bp->services[p->destPort];
 		else
-			DLN( dNETWORK, "Found a peripheral but no matching service");
+			DLN( dROUTE, "Found a peripheral but no matching service");
 	}
 
 	if ( service == NULL )
@@ -187,9 +187,9 @@ int Network::routePacket( Packet *p )
 
 	if ( retVal > 0 )
 	{
-		DPR( dNETWORK, "Route: Immediate packet sendback!" );
+		DLN( dROUTE, "Route: Immediate packet sendback!" );
 		if ( Makernet.network.role == Network::slave )
-			DPR( dALL, "WARNING: Untested code path!");
+			DLN( dALL, "WARNING: not fully tested code path!");
 		int retValSend = sendPacket( p );
 		if ( retValSend < 0 )
 		{
@@ -379,10 +379,10 @@ int Network::finalizePacketToFrame( Packet *p )
 
 int Network::sendPacket( Packet *p )
 {
-	if ( Makernet.network.role != master ) {
-		DLN( dOBJFRAMEWORK | dERROR, "Internal consistency issue! Non-master tried to send a unrequested packet");
-		return -1000;
-	}
+	// if ( Makernet.network.role != master ) {
+	// 	DLN( dOBJFRAMEWORK | dERROR, "Internal consistency issue! Non-master tried to send a unrequested packet");
+	// 	return -1000;
+	// }
 
 	int r = finalizePacketToFrame( p );
 	if ( r <= 0 )

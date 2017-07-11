@@ -48,6 +48,13 @@ private:
 	// Buffer for the user command line
 	char userCommandBuffer[1000];
 	char *bpos = userCommandBuffer;
+
+	// Flag that tracks if we have a packet to respond with (slave mode only)
+	int returnFrameSize;
+	// Holds the packet we desire to return on the next thunk 
+	uint8_t returnFrameBuffer[MAX_MAKERNET_FRAME_LENGTH+1];
+
+	void sendToWire( uint8_t *inBuffer, int len );
 };
 
 

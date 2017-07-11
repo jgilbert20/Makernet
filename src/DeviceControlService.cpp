@@ -156,7 +156,7 @@ int DeviceControlService::pollPacket(Packet *p)
 	if ( CONTROLLER_SUPPORT && Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( dDCS, "Time for a polling packet!");
+			DLN( dDCS, "DCS: Time for a general network polling packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = 1;
@@ -170,7 +170,7 @@ int DeviceControlService::pollPacket(Packet *p)
 	        Makernet.network.address == ADDR_UNASSIGNED )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( dDCS, "Time for a request packet!");
+			DLN( dDCS, "DCS: Time for an address request packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = sizeof( DCSAddressRequestMessage );

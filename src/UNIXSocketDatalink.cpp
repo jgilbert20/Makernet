@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  UNIXSocketDatalink.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 
@@ -54,6 +54,8 @@ void UNIXSocketDatalink::initialize()
 
 	DLN( dDATALINK, "Connected.");
 
+	returnFrameSize = 0;
+
 }
 
 typedef struct { uint8_t value[5] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; } ThunkMessage;
@@ -65,11 +67,49 @@ ThunkMessage thunk;
 
 int UNIXSocketDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 {
+	if ( Makernet.network.role == Network::slave ) {
+		// Slave case: store packet and send later
+		if ( returnFrameSize > 0 )
+			DLN( dDATALINK | dWARNING, "WARNING: Framework provided a new packet before the old one was sent!");
+
+		if ( inBuffer != frameBuffer )
+			DLN( dDATALINK | dERROR, "ERROR: Unimplemented case of an external buffer being sent in slave mode");
+
+		DLN( dDATALINK, "Packet queued for next 'read'" );
+
+		returnFrameSize = len;
+		memcpy( returnFrameBuffer, inBuffer, len );
+		return 0;
+	}
+
+	// Else we are the master
+
+	sendToWire( inBuffer, len );
+
+
+	// Emit the "thunk". If we are a master, we need to emulate the idea of
+	// opening the bus for responses the same way that I2C works when the
+	// master holds the clock line after its finished sending. This happens by
+	// emitting a 5 byte FF signature.
+
+	if ( Makernet.network.role == Network::master ) {
+		int len = sizeof( thunk );
+		sendToWire( (uint8_t *)&thunk, len );
+	}
+
+	return 0;
+}
+
+void UNIXSocketDatalink::sendToWire( uint8_t *inBuffer, int len )
+{
+	// Send the length
 
 	if (send(sock, &len, 1, 0) == -1) {
 		perror("send");
 		exit(1);
 	}
+
+	// Send the packet
 
 	if (send(sock, inBuffer, len, 0) == -1) {
 		perror("send");
@@ -82,25 +122,6 @@ int UNIXSocketDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 	hexPrint( dDATALINK, inBuffer, len );
 	DLN( dDATALINK );
 
-	// Emit the "thunk". If we are a master, we need to emulate the idea of
-	// opening the bus for responses the same way that I2C works when the
-	// master holds the clock line after its finished sending. This happens by
-	// emitting a 5 byte FF signature.
-
-	if ( Makernet.network.role == Network::master ) {
-		int len = sizeof( thunk );
-
-		if (send(sock, &len, 1, 0) == -1) {
-			perror("send");
-			exit(1);
-		}
-		if ( send(sock, (uint8_t *)&thunk, 5, 0) == -1 ) {
-			perror("send");
-			exit(1);
-		}
-	}
-
-	return 0;
 }
 
 void UNIXSocketDatalink::processIncomingFrame()
@@ -132,13 +153,24 @@ void UNIXSocketDatalink::processIncomingFrame()
 
 		// Intercept a master broadcast "thunk". This emulation is only
 		// handled in cases where we are pretending to be a master/slave
-		// network and the thunk triggers the poll.
+		// network and the thunk triggers the poll. In some cases this may
+		// just trigger sending the reply packet queued up during the inbound
+		// routing.
 
 		if ( t == 5 and Makernet.network.role == Network::slave )
 			if ( memcmp( &thunk, frameBuffer, 5) == 0 )
 			{
+				if ( returnFrameSize > 0 ) {
+					DLN( dDATALINK , "THUNK IN: Sending queued buffer back on thunk");
+					sendToWire( returnFrameBuffer, returnFrameSize );
+					returnFrameSize = 0;
+					return;
+				}
+
 				for ( int i = 0 ; i < MAX_MAKERNET_FRAME_LENGTH ; i++ )
 					frameBuffer[i] = 0;
+
+				DLN( dDATALINK , "THUNK IN: Polling framework");
 
 				int n = Makernet.network.pollFrame( frameBuffer, n );
 				if ( n > 0 )

@@ -24,11 +24,14 @@
 #define dWARNING      1 << 7
 #define dSTATUSMSG    1 << 8
 #define dMAILBOX      1 << 9
+#define dROUTE        1 << 10
+#define dPOLL         1 << 11
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
-#define DEBUGLEVEL    dALL
+#define DEBUGLEVEL    dDATALINK|dDCS|dERROR|dWARNING|dSTATUSMSG|dMAILBOX
+
 // dMAILBOX|dWARNING|dERROR|dSTATUSMSG
 //   (dSTATUSMSG|dOBJFRAMEWORK)
 
