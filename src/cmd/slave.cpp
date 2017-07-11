@@ -15,7 +15,7 @@
 #include <UNIXSocketDatalink.h>
 #include <Makernet.h>
 
-DeviceControlService dcs;
+
 MailboxService ms;
 UNIXSocketDatalink um;
 auto sm = SmallMailbox( 0, "Test mailbox" );
@@ -30,7 +30,6 @@ int main(int argc, const char * argv[])
 	Makernet.network.role = Network::slave;
 
 	Makernet.network.useDatalink( &um );
-	Makernet.network.registerService(PORT_DCS, &dcs);
 	Makernet.network.registerService(PORT_MAILBOX, &ms);
 
 	ms.set( 0, sm );

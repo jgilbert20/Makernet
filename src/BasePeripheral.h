@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  BasePeripheral.h
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #ifndef BASEPERIPHERAL_H
@@ -42,24 +42,22 @@ public:
 	// Called when there has been a global bus-reset
 	virtual void busReset();
 
+	// Given an address, returns a proxy object if one exists
+	static BasePeripheral *findByAddress( uint8_t address );
 	// Given a device network description, returns a proxy object if one exists
 	static BasePeripheral *findPeripheralObjectForDevice( DeviceProfile *dp );
+
 	static void initializeAllPeripherals();
 	static void busResetAllPeripherals();
-
-	// Look up a peripheral by a device ID
-	// static BasePeripheral *findByDeviceID(uint16_t query);
-
-
-	// Returns the device ID
-	// uint16_t getDeviceID();
-
 
 	// Internal tracking UUID
 	long _uuid;
 
 	// Contains the connection address details
 	DeviceProfile connectedDevice;
+
+	int registerService( int port, Service* s );
+	Service *services[NUM_PORTS];
 
 private:
 
@@ -72,7 +70,6 @@ private:
 	// bool _disconnected;
 
 	DeviceType _deviceType;
-
 
 
 	// Linked list of peripherals

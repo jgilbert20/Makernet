@@ -18,8 +18,13 @@
 // Called at configure time
 void DeviceControlService::initialize()
 {
+	configure(); 
 }
 
+// Called at configure time
+void DeviceControlService::configure()
+{
+}
 
 
 
@@ -188,6 +193,15 @@ int DeviceControlService::pollPacket(Packet *p)
 
 void DeviceControlService::busReset()
 {
+	DLN( dDCS, "DCS: handleBusReset...");
 	// DLN( dALL, "DCS Loop handler");
 }
+
+
+void DeviceControlService::issueBusReset()
+{
+	DLN( dDCS, "************* FUTURE HOME OF ISSUE BUS RESET!!!");
+}
+
+
 

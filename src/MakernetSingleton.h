@@ -34,6 +34,7 @@ public:
 	void initialize();
 	void loop();
 	void busReset();
+	void issueBusReset();
 };
 
 extern _Makernet Makernet;

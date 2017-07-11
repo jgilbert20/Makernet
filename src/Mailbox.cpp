@@ -51,7 +51,6 @@ int SmallMailbox::hasPendingChanges()
 	return !synchronized;
 }
 
-
 struct SmallMailboxMessage {
 	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE } command;
 	uint32_t value;
@@ -119,11 +118,6 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		return 0;
 	}
 
-
-
-
-
-
 	return 1;
 }
 
@@ -147,7 +141,3 @@ uint32_t SmallMailbox::getLong()
 {
 	return ( __contents );
 }
-
-
-
-

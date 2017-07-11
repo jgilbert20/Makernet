@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  BasePeripheral.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #include <BasePeripheral.h>
@@ -29,6 +29,10 @@ BasePeripheral::BasePeripheral(DeviceType deviceType) :
 
 	*endPtr = this;
 	_uuid = uuid_gen++;
+
+	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+		services[i] = NULL;
+	}
 }
 
 
@@ -53,8 +57,18 @@ void BasePeripheral::initializeAllPeripherals()
 void BasePeripheral::busResetAllPeripherals()
 {
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral) {
+		p->connectedDevice.reset();
+
+
+		// Issue bus reset to all services if any
+		for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
+			Service *s = p->services[i];
+			if ( s != NULL )
+				s->busReset();
+		}
+
 		p->busReset();
-		
+
 		// Not sure what else needs to go here..? Do we force a disconnect and reconnect?
 		// p->deviceProfile.address = ADDR_UNASSIGNED;
 	}
@@ -64,7 +78,7 @@ void BasePeripheral::busResetAllPeripherals()
 
 void BasePeripheral::busReset()
 {
-
+	DLN( dOBJFRAMEWORK, "Base peripheral got a bus request..");
 }
 
 BasePeripheral::~BasePeripheral() {
@@ -87,6 +101,36 @@ void BasePeripheral::configure()
 }
 
 
+int BasePeripheral::registerService( int port, Service* s )
+{
+	if ( API_CHECK && (port >= NUM_PORTS or port < 1 )) {
+		DPR( dOBJFRAMEWORK | dERROR, "Invalid service registration (note, service 0 is reserved for DCS!)");
+		return -1101;
+	}
+	if ( API_CHECK && s == NULL ) {
+		DPR( dOBJFRAMEWORK | dERROR, "NULL service registration");
+		return -1102;
+	}
+
+	s->port = port;
+	services[port] = s;
+	s->initialize();
+	return 1;
+}
+
+
+
+// Called by the framework to find the base peripheral corresponding to a
+// numeric address, otherwise NULL
+
+BasePeripheral *BasePeripheral::findByAddress( uint8_t address )
+{
+	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
+		if ( address == p->connectedDevice.address )
+			return p;
+	return NULL;
+}
+
 // This function is called by the framework when a connected device requests
 // address assignement. The key variables for the device are loaded into a
 // deviceprofile object and passed to this function which then selects a base
@@ -100,8 +144,7 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 	// First look for hardware matches
 
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
-		if ( // p->connectedDevice.hardwareID != HWID_UNASSIGNED and
-		        dp->hardwareID == p->connectedDevice.hardwareID )
+		if ( dp->hardwareID == p->connectedDevice.hardwareID )
 			return p;
 
 	for (BasePeripheral *p = _firstPeripheral; p != NULL ; p = p->_nextPeripheral)
@@ -109,10 +152,7 @@ BasePeripheral *BasePeripheral::findPeripheralObjectForDevice( DeviceProfile *dp
 		        p->_deviceType == dp->deviceType )
 			return p;
 
-
-
 	return NULL;
-
 }
 
-#endif 
+#endif

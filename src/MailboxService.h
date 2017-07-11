@@ -43,6 +43,7 @@ class MailboxService : public Service {
 
 public:
 	virtual void initialize();
+	virtual void configure();
 	virtual int handlePacket( Packet *p );
 	virtual int pollPacket( Packet *p );
 	// virtual void loop();

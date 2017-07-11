@@ -29,5 +29,5 @@ EncoderPeripheral::EncoderPeripheral() :
 
 void EncoderPeripheral::configure()
 {
-	 // encoderDictionary.configure();
+	 registerService( 1, &encoderMailboxSvc );
 }

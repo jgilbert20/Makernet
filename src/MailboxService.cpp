@@ -47,6 +47,11 @@
 
 void MailboxService::initialize()
 {
+	configure();
+}
+
+void MailboxService::configure()
+{
 
 }
 
@@ -79,6 +84,12 @@ int MailboxService::pollPacket( Packet *p )
 {
 	DLN( dMAILBOX, "Mailbox poll");
 
+	// Check if we have a valid destination configured
+
+	if ( endpoint == NULL or endpoint->address == ADDR_UNASSIGNED ) {
+		return 0;
+	}
+
 	int nextMailbox = nextPendingMailboxIndex();
 	if ( nextMailbox >= 0 ) {
 		DPF( dMAILBOX, "Mailbox changed %d\n", nextMailbox );
@@ -101,6 +112,13 @@ int MailboxService::handlePacket( Packet *p )
 {
 	if ( p->size <= sizeof(MailboxUpdateMessage) )
 		return -4500;
+
+	// Check if we have a valid destination configured
+
+	if ( endpoint == NULL or endpoint->address == ADDR_UNASSIGNED ) {
+		DPF( dMAILBOX | dERROR, "handleMessage dropped packet, no endpoint configured" );
+		return -4502;
+	}
 
 	MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p->payload;
 
@@ -128,7 +146,7 @@ int MailboxService::handlePacket( Packet *p )
 
 void MailboxService::busReset()
 {
-	// TBD
+	DLN( dMAILBOX, "MailboxService: Bus Reset...");
 }
 
 

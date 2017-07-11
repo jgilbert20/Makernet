@@ -45,8 +45,10 @@
 class Service {
 
 public:
-	// Called when we are registered, do run-time setup here
+	// Called when we are registered, do run-time setup here for base classes
 	virtual void initialize() = 0;
+	// Called when we are registered, do run-time setup here for subclasses
+	virtual void configure() = 0;	
 	// Called when a packet is routed to us, return > 0 means a outgoing packet was generated
 	virtual int handlePacket( Packet *p ) = 0;
 	// Called with a scatch packet template, return 1 if a packet populated, 0 otherwise

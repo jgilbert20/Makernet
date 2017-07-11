@@ -45,6 +45,8 @@
 #define PORT_DCS 0
 #define PORT_MAILBOX 1
 
+#include <DeviceControlService.h>
+
 class Datalink;
 
 class Network {
@@ -74,12 +76,15 @@ public:
 	int registerService( int port, Service *s );
 	void loop();
 	void busReset();
+	void issueBusReset();
 
 	enum { master, slave, peer } role;
 	int address;
 	Service *services[NUM_PORTS];
 
 private:
+
+DeviceControlService deviceControlSvc;
 
 	int routePacket( Packet *p );
 };

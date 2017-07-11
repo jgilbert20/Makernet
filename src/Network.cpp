@@ -15,6 +15,7 @@
 #include <MakernetSingleton.h>
 #include <Util.h>
 #include <Datalink.h>
+#include <BasePeripheral.h>
 
 Network::Network() {
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
@@ -28,8 +29,10 @@ Network::Network() {
 
 void Network::initialize()
 {
+	// Register the DCS (this also inits it!)
+	Makernet.network.registerService(PORT_DCS, &deviceControlSvc);
+	// Init our datalink
 	datalink->initialize();
-
 	return;
 }
 
@@ -106,6 +109,13 @@ void Network::busReset()
 	}
 }
 
+
+void Network::issueBusReset()
+{
+	deviceControlSvc.issueBusReset();;
+
+}
+
 // routePacket() is alled when we have a valid packet that is meant for us.
 // From this point on upwards into the stack, we can assume everything about
 // the packet checks out (checksum, address, etc).
@@ -121,11 +131,34 @@ int Network::routePacket( Packet *p )
 		return -5200;
 
 	if ( p->destPort < 0 or p->destPort >= NUM_PORTS )
-		return -5204;
-
-	Service *service = services[p->destPort];
-	if ( service == NULL )
 		return -5201;
+
+	Service *service = NULL;
+
+	// Routing path if we are a slave or the message is a DCS packet is to
+	// route into our Network registered Service...
+
+	if ( p->destPort == 0 or Makernet.network.role == slave ) {
+		service = services[p->destPort];
+		if ( service == NULL )
+			return -5202;
+	}
+
+	// Routing path if we are a controller is to first attempt routing into a
+	// BasePeripheral object
+
+	if ( CONTROLLER_SUPPORT and Makernet.network.role == master and
+	        p->src != ADDR_UNASSIGNED and p->dest != ADDR_BROADCAST ) {
+		BasePeripheral *bp = BasePeripheral::findByAddress( p->src );
+
+		if( bp != NULL )
+			service = bp->services[p->destPort];
+		else
+			DLN( dNETWORK, "Found a peripheral but no matching service");
+	}
+
+	if( service == NULL )
+		return( -5203 );
 
 	int retVal =  service->handlePacket( p );
 

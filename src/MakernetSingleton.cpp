@@ -25,6 +25,9 @@ void _Makernet::initialize()
 #if CONTROLLER_SUPPORT
 	BasePeripheral::initializeAllPeripherals();
 #endif
+	// Issue our first bus reset
+	busReset();
+	issueBusReset();
 }
 
 // busReset() is a special verb that is intended to reset all state around the
@@ -38,12 +41,20 @@ void _Makernet::initialize()
 
 void _Makernet::busReset()
 {
+	DLN( dSTATUSMSG, "Makernet: Handling bus reset request!" );
 	network.busReset();
 
 #if CONTROLLER_SUPPORT
 	BasePeripheral::busResetAllPeripherals();
 #endif
 
+}
+
+void _Makernet::issueBusReset()
+{
+	DLN( dSTATUSMSG, "Issuing global bus reset to network!" );
+
+	network.issueBusReset();
 }
 
 void _Makernet::loop()

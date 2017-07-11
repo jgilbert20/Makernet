@@ -17,7 +17,6 @@
 
 EncoderPeripheral encoder;
 
-DeviceControlService dcs;
 MailboxService ms;
 UNIXSocketDatalink um;
 auto sm = SmallMailbox( 0, "Test mailbox" );
@@ -32,7 +31,6 @@ int main(int argc, const char * argv[])
 	Makernet.network.role = Network::master;
 
 	Makernet.network.useDatalink( &um );
-	Makernet.network.registerService(PORT_DCS, &dcs);
 	Makernet.network.registerService(PORT_MAILBOX, &ms);
 
 	Makernet.network.address = 10;

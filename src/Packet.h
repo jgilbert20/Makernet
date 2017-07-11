@@ -56,6 +56,7 @@ enum class DeviceType {
 
 struct DeviceProfile
 {
+	void reset() { connected = false; hardwareID = HWID_UNASSIGNED; address = ADDR_UNASSIGNED; };
 	bool connected = false;
 	uint16_t hardwareID = HWID_UNASSIGNED;
 	DeviceType deviceType = DeviceType::Unassigned;
