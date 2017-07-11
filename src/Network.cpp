@@ -118,14 +118,14 @@ void Network::busReset()
 int Network::routePacket( Packet *p )
 {
 	if ( API_CHECK and p == NULL )
-		return -200;
+		return -5200;
 
 	if ( p->destPort < 0 or p->destPort >= NUM_PORTS )
-		return -204;
+		return -5204;
 
 	Service *service = services[p->destPort];
 	if ( service == NULL )
-		return -201;
+		return -5201;
 
 	int retVal =  service->handlePacket( p );
 
@@ -303,6 +303,11 @@ int Network::finalizePacketToFrame( Packet *p )
 {
 	if ( p == NULL )
 		return -3000;
+
+	DPR( dNETWORK, "Finalize: ");
+	hexPrint( dNETWORK, (uint8_t *)p, 25 );
+	DLN( dNETWORK );
+
 
 	int size = p->size;
 

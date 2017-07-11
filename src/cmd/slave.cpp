@@ -22,6 +22,8 @@ auto sm = SmallMailbox( 0, "Test mailbox" );
 
 DeviceProfile dp;
 
+void handleCommand(char *cmd, int len );
+
 int main(int argc, const char * argv[])
 {
 	FAKEHARDWAREID = 0x4488;
@@ -31,6 +33,7 @@ int main(int argc, const char * argv[])
 	Makernet.network.registerService(PORT_DCS, &dcs);
 	Makernet.network.registerService(PORT_MAILBOX, &ms);
 
+	ms.set( 0, sm );
 	ms.endpoint = &dp; 
 	ms.endpoint->address = 10;
 
@@ -40,12 +43,22 @@ int main(int argc, const char * argv[])
 
 	startMicrosecondCounter();
 
+	um.handleCommand = handleCommand;
+
 	while (1)
 	{
 		um.loop();
 		Makernet.loop();
 		updateMicrosecondCounter();
 	}
+}
+
+void handleCommand(char *cmd, int len )
+{
+	printf( "===--> %s\n", cmd );
+	int v = atoi(cmd);
+	printf( "Set mailbox to: %i\n", v );
+	sm.setLong( v );
 }
 
 #endif

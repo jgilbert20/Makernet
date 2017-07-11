@@ -53,9 +53,9 @@ int SmallMailbox::hasPendingChanges()
 
 
 struct SmallMailboxMessage {
-	enum Command : uint8_t { SEND_VALUE, ACK_VALUE } command;
+	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE } command;
 	uint32_t value;
-};
+} __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
 
 // Called by the framework when we've indicated a pending message is
 // available. Our job is to transmit any unacknowledged values
@@ -69,7 +69,7 @@ int SmallMailbox::generateMessage( uint8_t *buffer, int size )
 
 	auto *msg = reinterpret_cast<SmallMailboxMessage *>(buffer);
 
-	msg->command = SmallMailboxMessage::SEND_VALUE;
+	msg->command = SmallMailboxMessage::Command::SEND_VALUE;
 	msg->value = __contents;
 
 	return sizeof( SmallMailboxMessage );
@@ -84,24 +84,24 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 	auto *msg = reinterpret_cast<SmallMailboxMessage *>(buffer);
 
-	if ( msg->command == SmallMailboxMessage::SEND_VALUE ) {
+	if ( msg->command == SmallMailboxMessage::Command::SEND_VALUE ) {
 		__contents = msg->value;
 		synchronized = 1;
 
 		DPR( dMAILBOX, "&&&& Mailbox value recv: [");
 		DPR( dMAILBOX, description );
 		DPR( dMAILBOX, "] updated over network to: [");
-		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(__contents), 4 );
+		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(contents), 4 );
 		DPR( dMAILBOX, "] as ui32: [");
 		DPR( dMAILBOX, __contents );
 		DLN( dMAILBOX, "]");
 
-		msg->command = SmallMailboxMessage::ACK_VALUE;
+		msg->command = SmallMailboxMessage::Command::ACK_VALUE;
 
 		return (sizeof( SmallMailboxMessage ));
 	}
 
-	if ( msg->command == SmallMailboxMessage::ACK_VALUE ) {
+	if ( msg->command == SmallMailboxMessage::Command::ACK_VALUE ) {
 
 		if( msg->value == __contents )
 			synchronized = 1;
@@ -111,7 +111,7 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		DPR( dMAILBOX, "&&&& Mailbox value acknowledgement: [");
 		DPR( dMAILBOX, description );
 		DPR( dMAILBOX, "] updated over network to: [");
-		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(__contents), 4 );
+		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(contents), 4 );
 		DPR( dMAILBOX, "] as ui32: [");
 		DPR( dMAILBOX, __contents );
 		DLN( dMAILBOX, "]");

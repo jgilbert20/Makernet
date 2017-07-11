@@ -28,7 +28,8 @@
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
-#define DEBUGLEVEL   0
+#define DEBUGLEVEL    dALL
+// dMAILBOX|dWARNING|dERROR|dSTATUSMSG
 //   (dSTATUSMSG|dOBJFRAMEWORK)
 
 // The following three macros are found throughout the code and implement an
@@ -40,25 +41,12 @@
 // DLN = print a single value with a newline
 // DPF = printf
 
-
-
-
-// #define DPR( mask, X... )	    if(0) { }
-// #define DFL( mask )	    		if(0) { }
-// #define DLN( mask, X... )	    if(0) { }
-// //#define DPF( mask, X... )	    if(0) { }
-// #define DPF( mask, X... )	    if(0) { }
-// #define HPR( mask, ptr, size )  if(0) { }
-
-
-
-
-#define DPR( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebug( X ); }
-#define DFL( mask )	    		if( ((mask) & DEBUGLEVEL) > 0 ) { DEBUGSERIAL.flush(); }
-#define DLN( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebugln( X ); }
-//#define DPF( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { printDebug( "<<NoPrintf>\n" ); }
-#define DPF( mask, X... )	    if( ((mask) & DEBUGLEVEL) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
-#define HPR( mask, ptr, size )  if( ((mask) & DEBUGLEVEL) > 0 ) { hexPrint( ptr, size ) }
+#define DPR( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebug( X ); }
+#define DFL( mask )	    		if( ((mask) & (DEBUGLEVEL)) > 0 ) { DEBUGSERIAL.flush(); }
+#define DLN( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebugln( X ); }
+//#define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebug( "<<NoPrintf>\n" ); }
+#define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
+#define HPR( mask, ptr, size )  if( ((mask) & (DEBUGLEVEL)) > 0 ) { hexPrint( ptr, size ) }
 
 
 #ifndef ARDUINO

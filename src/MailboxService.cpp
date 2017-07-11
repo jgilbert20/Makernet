@@ -62,18 +62,28 @@ int MailboxService::nextPendingMailboxIndex()
 
 void MailboxService::pointPacketToEndpoint( Packet *p )
 {
+	p->clear();
 	p->src = Makernet.network.address;
 	p->dest = endpoint->address;
 	p->destPort = PORT_MAILBOX;
+
+	DPR( dNETWORK, "Point: ");
+	hexPrint( dNETWORK, (uint8_t *)p, 25 );
+	DLN( dNETWORK );
+
+	DPF( dMAILBOX, "Src = %d\n", p->dest );
 }
 
 
 int MailboxService::pollPacket( Packet *p )
 {
+	DLN( dMAILBOX, "Mailbox poll");
+
 	int nextMailbox = nextPendingMailboxIndex();
-	if ( nextMailbox > 0 ) {
+	if ( nextMailbox >= 0 ) {
+			DPF( dMAILBOX, "Mailbox changed %d\n", nextMailbox );
 		pointPacketToEndpoint( p );
-		MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p;
+		MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p->payload;
 		msg->mailbox = nextMailbox;
 		int size = mailboxes[nextMailbox]->generateMessage( msg->payload, MAX_MAILBOX_MESSAGE_SIZE );
 		if ( size <= 0 ) {
@@ -90,13 +100,15 @@ int MailboxService::pollPacket( Packet *p )
 int MailboxService::handlePacket( Packet *p )
 {
 	if ( p->size <= sizeof(MailboxUpdateMessage) )
-		return -123;
+		return -4500;
 
-	MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p;
+	MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p->payload;
 
-	int i = msg->mailbox;
-	if( i < MAX_MAILBOXS_PER_SERVICE )
-		return -200;
+	DPF( dMAILBOX, "Incoming mailbox packet src[%d] size[%d] mailbox[%d]\n", p->src, p->size, msg->mailbox );
+
+	uint8_t i = msg->mailbox;
+	if( i < 0 or i >= MAX_MAILBOXS_PER_SERVICE )
+		return -4501;
 
 	if ( mailboxes[i] != NULL ) {
 		int rsize = mailboxes[i]->handleMessage( msg->payload, p->size - sizeof(MailboxUpdateMessage) );
