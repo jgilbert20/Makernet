@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  Mailbox.h
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #ifndef MAILBOX_H
@@ -79,13 +79,18 @@ public:
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
 
+	typedef void (*OnChangeHandler)(Mailbox *m, bool hasChanged );
+	OnChangeHandler onChange = 0;
+
+	bool changeTrigger; // One shot for change notifications
+
 	Interval retryTimer = Interval(1000);
 
 	void setLong( uint32_t v );
 	uint32_t getLong();
 
 private:
-		uint32_t __contents; 
+	uint32_t __contents;
 
 };
 

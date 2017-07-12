@@ -45,15 +45,10 @@ void SmallMailbox::busReset()
 	else
 		synchronized = 1;
 
+	changeTrigger = 0;
+
 	DPF( dMAILBOX | dRESET, "&&&& RESET: [%s] - sync=%d callerChanged=%d value=%d\n",
 	     description, synchronized, callerChanged, __contents  );
-}
-
-void SmallMailbox::trigger()
-{
-	synchronized = 0;
-	callerChanged = 1;
-	retryTimer.trigger();
 }
 
 int SmallMailbox::hasPendingChanges()
@@ -70,7 +65,7 @@ int SmallMailbox::hasPendingChanges()
 }
 
 struct SmallMailboxMessage {
-	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE, NACK_VALUE } command;
+	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE, SEND_VALUE_CHANGE } command;
 	uint32_t value;
 } __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
 
@@ -86,7 +81,15 @@ int SmallMailbox::generateMessage( uint8_t *buffer, int size )
 
 	auto *msg = reinterpret_cast<SmallMailboxMessage *>(buffer);
 
-	msg->command = SmallMailboxMessage::Command::SEND_VALUE;
+	// Change trigger generates a one-shot message with the CHANGE flag on.
+	// Future value updates or synhronizations will just be SEND_VALUE.
+	// On ACK, we clear the changeTrigger.
+
+	if ( changeTrigger && callerChanged )
+		msg->command = SmallMailboxMessage::Command::SEND_VALUE_CHANGE;
+	else
+		msg->command = SmallMailboxMessage::Command::SEND_VALUE;
+
 	msg->value = __contents;
 
 	retryTimer.reset();
@@ -103,7 +106,8 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 	auto *msg = reinterpret_cast<SmallMailboxMessage *>(buffer);
 
-	if ( msg->command == SmallMailboxMessage::Command::SEND_VALUE ) {
+	if ( msg->command == SmallMailboxMessage::Command::SEND_VALUE or
+	        msg->command == SmallMailboxMessage::Command::SEND_VALUE_CHANGE ) {
 		if ( callerChanged ) {
 			// Contention case. Here both sides have updated the mailbox.
 			DPR( dMAILBOX, "&&&& Contention: Incoming mailbox push when callerChanged=1");
@@ -136,6 +140,18 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		DPR( dMAILBOX, __contents );
 		DLN( dMAILBOX, "]");
 
+		// The _CHANGE varient is triggered once when a caller has issued the changes
+		// as opposed to a value being sent over during a synchronization. As soon
+		// as we dispatch the event, changeTrigger should be made zero.
+
+		if( msg->command == SmallMailboxMessage::Command::SEND_VALUE_CHANGE )
+			changeTrigger = 1;
+
+		if( onChange != NULL )
+			onChange( this, changeTrigger );
+
+		changeTrigger = 0;
+
 		// Reformat the message and send it back as an ACK
 		msg->command = SmallMailboxMessage::Command::ACK_VALUE;
 
@@ -149,6 +165,8 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 			synchronized = 1;
 		else
 			DLN( dMAILBOX | dWARNING, "&&&& Mailbox ACK incorrect, not clearing sync flag" );
+
+		changeTrigger = 0;
 
 		DPR( dMAILBOX, "&&&& Mailbox value acknowledgement: [");
 		DPR( dMAILBOX, description );
@@ -166,6 +184,14 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 	return 1;
 }
 
+void SmallMailbox::trigger()
+{
+	synchronized = 0;
+	callerChanged = 1;
+	changeTrigger = 1;
+	retryTimer.trigger();
+}
+
 void SmallMailbox::setLong( uint32_t v )
 {
 	__contents = v;
@@ -174,6 +200,7 @@ void SmallMailbox::setLong( uint32_t v )
 
 	synchronized = 0;
 	callerChanged = 1;
+	changeTrigger = 1;
 
 	DPR( dMAILBOX, "&&&& MailboxChange: [");
 	DPR( dMAILBOX, description );

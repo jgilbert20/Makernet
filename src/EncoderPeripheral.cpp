@@ -1,12 +1,12 @@
 /********************************************************
- ** 
+ **
  **  EncoderPeripheral.cpp
- ** 
+ **
  **  Part of the Makernet framework by Jeremy Gilbert
- ** 
+ **
  **  License: GPL 3
  **  See footer for copyright and license details.
- ** 
+ **
  ********************************************************/
 
 #include <EncoderPeripheral.h>
@@ -14,7 +14,7 @@
 
 // void EncoderMailboxDictionary::configure()
 // {
-	
+
 // 	DPR( dANY, "Configuring encoder dictionary...");
 // 	set(0, position);
 // 	set(1, buttonDown);
@@ -29,5 +29,8 @@ EncoderPeripheral::EncoderPeripheral() :
 
 void EncoderPeripheral::configure()
 {
-	 registerService( 1, &encoderMailboxSvc );
+	registerService( 1, &encoderMailboxSvc );
+	encoderMailboxSvc.position.onChange = [=](Mailbox (*m), bool hasChanged ) {
+		DPF( dANY, "Got a change!!\n" );
+	};
 }

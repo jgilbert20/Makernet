@@ -93,7 +93,7 @@ int MailboxService::pollPacket( Packet *p )
 	if ( defaultEndpoint == NULL or defaultEndpoint->address == ADDR_UNASSIGNED ) {
 		DLN( dNETWORK, "WARNING: mailbox disabled due to defaultEnpoint not being set" );
 		DPF( dNETWORK, "defaultEndpoint null =%d\n", defaultEndpoint == NULL );
-		if( defaultEndpoint != NULL )
+		if ( defaultEndpoint != NULL )
 			DPF( dNETWORK, "defaultEndpoint addr =%d\n", defaultEndpoint->address );
 		return 0;
 	}
@@ -154,7 +154,7 @@ int MailboxService::handlePacket( Packet *p )
 
 void MailboxService::busReset()
 {
-	DLN( dMAILBOX|dRESET, "MailboxService: Bus Reset...");
+	DLN( dMAILBOX | dRESET, "MailboxService: Bus Reset...");
 
 	for ( int i = 0 ; i < MAX_MAILBOXS_PER_SERVICE ; i++ )
 		if ( mailboxes[i] != NULL ) {
