@@ -1,5 +1,7 @@
 #include <MakernetEncoderReader.h>
 
+#if defined(ARDUINO)
+
 //#pragma GCC optimize ("O3")
 #pragma GCC optimize ("Ofast")
 
@@ -105,3 +107,5 @@ void MakernetEncoderReader::begin()
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
+#endif

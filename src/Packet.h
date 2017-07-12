@@ -50,7 +50,8 @@ struct Packet : public PacketHeader {
 enum class DeviceType {
 	Unassigned = 0,
 	Controller = 1,
-	Encoder = 2
+	Encoder = 2,
+	Keypad = 3
 } ;
 // This structure defines the essential parameters of a device identity.
 

@@ -1,6 +1,8 @@
 #ifndef MAKERNETENCODERREADER_H
 #define MAKERNETENCODERREADER_H
 
+#if defined(ARDUINO)
+
 // Note this whole library is a hack. Preferably use PJRC / Encoder.h
 // for reading encoders since its much better written
 
@@ -56,4 +58,6 @@ private:
     volatile int32_t _rotPosition = 0;
 };
 
-#endif
+#endif // SAMD
+
+#endif // ARDUINO 
