@@ -40,18 +40,31 @@ long requestEventCount = 0;
 
 static void I2CDatalink_receiveEvent(int howMany) {
 
-receiveEventCount++;
 
-	if( _datalink->returnFrameSize > 0 )
-	{
-		// Repeated observation seems to show that receive is called 2X the times of reqest.
-		// Not sure why this would be since the caller ALWAYS does both things.
-		// This hack skips the next read in cases where there is a pending frame
+	// Repeated observation seems to show that receive is called 2X the times of reqest.
+	// Not sure why this would be since the caller ALWAYS does both things.
+	// This erroneous behavior been verified with a extremely simple test case. 
+	// If we allow this frame to go up to the network stack, we'll globber the
+	// response we want to store. This hack prevents that routing.
 
-		// DLN( dANY, "WARNING: next receive occured before prepared packet sent\n");
-		// DPF( dANY, "should be same: %ld %ld\n", receiveEventCount, requestEventCount );
-		return;
-	}
+	if( howMany < 1 )
+		return; 
+	
+
+
+
+	receiveEventCount++;
+
+	// if ( _datalink->returnFrameSize > 0 )
+	// {
+	// 	// Repeated observation seems to show that receive is called 2X the times of reqest.
+	// 	// Not sure why this would be since the caller ALWAYS does both things.
+	// 	// This hack skips the next read in cases where there is a pending frame
+
+	// 	// DLN( dANY, "WARNING: next receive occured before prepared packet sent\n");
+	// 	// DPF( dANY, "should be same: %ld %ld\n", receiveEventCount, requestEventCount );
+	// 	return;
+	// }
 
 
 	uint8_t p = 0;
@@ -70,9 +83,9 @@ receiveEventCount++;
 		DPR( dDATALINK, " ");
 	}
 
-	DPR( dDATALINK,  " Actual Size:" );
+	DPR( dDATALINK,  " Actual Size: (" );
 	DPR( dDATALINK, p);
-	DLN( dDATALINK );
+	DLN( dDATALINK, ")");
 	DFL( dDATALINK );
 
 	// if( _datalink->returnFrameSize > 0 )
@@ -101,7 +114,7 @@ receiveEventCount++;
 		}
 	}
 
-	// reDone = 0; 
+	// reDone = 0;
 }
 
 // function that executes whenever data is requested by master this function
@@ -114,7 +127,7 @@ receiveEventCount++;
 
 static void I2CDatalink_requestEvent() {
 
-requestEventCount++;
+	requestEventCount++;
 
 // if( reDone == 1 )
 	// DLN( dANY, "Warning - one interrupted the other!\n");
@@ -126,11 +139,15 @@ requestEventCount++;
 
 	DLN( dDATALINK, "I2C read request from slave.." );
 
-	Wire.write( _datalink->frameBuffer, _datalink->returnFrameSize );
+	int b = Wire.write( _datalink->frameBuffer, _datalink->returnFrameSize );
 
 	DPR( dDATALINK, "<<<< " );
 	hexPrint( dDATALINK, _datalink->frameBuffer, _datalink->returnFrameSize );
 	DLN( dDATALINK );
+
+	if ( b != _datalink->returnFrameSize ) {
+		DPF( dDATALINK | dWARNING, "WARN: Short write %d vs ", b,  _datalink->returnFrameSize	 );
+	}
 
 	// Make sure we don't send anything again if called again before next receiveEvent
 	_datalink->returnFrameSize = 0;
@@ -164,9 +181,11 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 		Wire.beginTransmission(MAKERNET_BROADCAST_I2C); // transmit to device
 
+		int actual = 0;
+
 		for ( int i = 0 ; i < len ; i++ ) {
 			uint8_t c = frameBuffer[i];
-			Wire.write(c);
+			actual += Wire.write(c);
 
 			if ( c < 0x10 )
 				DPR( dDATALINK, "0" );
@@ -177,15 +196,28 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 		DLN( dDATALINK );
 		DFL( dDATALINK );
 
-		Wire.endTransmission(true);    // stop transmitting
+		if ( len != actual ) {
+			DPF( dDATALINK | dWARNING, "WARN: Short write %d vs %d\n", actual, len );
+		}
 
-		// Now read from the remote side...
+		int r = Wire.endTransmission(true);    // stop transmitting
 
 
-   //  Not clear what this does but its in EKTs code
-   while (Wire.available()) {
-     Wire.read();
-   }
+// Errors:
+//  0 : Success
+//  1 : Data too long
+//  2 : NACK on transmit of address
+//  3 : NACK on transmit of data
+//  4 : Other error
+
+		if ( r != 0 ) {
+			DPF( dDATALINK | dWARNING, "Short write error=%d\n", r );
+		}
+
+		//  Not clear what this does but its in EKTs code
+		// while (Wire.available()) {
+		// 	Wire.read();
+		// }
 
 //		DLN( dDATALINK, "Starting read...");
 
@@ -199,7 +231,7 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 		int count = 0;
 
-		int ffCount = 0; 
+		int ffCount = 0;
 
 		while (Wire.available()) { // slave may send less than requested
 			char c = Wire.read(); // receive a byte as character
@@ -213,18 +245,18 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 				frameBuffer[count] = c;
 			count++;
 
-			if( c == 0xFF ) ffCount++;
+			if ( c == 0xFF ) ffCount++;
 		}
 
 		DPR( dDATALINK, "READ DONE, actual sz=" );
 		DPR( dDATALINK, count );
 		DLN( dDATALINK );
 
-		if(ffCount!=count)
+		// Block messages that are entire 0xFF (no reply)
 
-		Makernet.network.handleFrame( _datalink->frameBuffer, count );
+		if (ffCount != count)
+			Makernet.network.handleFrame( _datalink->frameBuffer, count );
 
-		// Todo better error handling?
 
 		return 0;
 	}

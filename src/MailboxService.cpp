@@ -130,7 +130,7 @@ int MailboxService::handlePacket( Packet *p )
 
 	MailboxUpdateMessage *msg = (MailboxUpdateMessage *)p->payload;
 
-	DPF( dMAILBOX, "Incoming mailbox packet src[%d] size[%d] mailbox[%d]\n", p->src, p->size, msg->mailbox );
+	// DPF( dMAILBOX, "Incoming mailbox packet src[%d] size[%d] mailbox[%d]\n", p->src, p->size, msg->mailbox );
 
 	uint8_t i = msg->mailbox;
 	if ( i < 0 or i >= MAX_MAILBOXS_PER_SERVICE )

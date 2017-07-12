@@ -62,8 +62,8 @@ int SmallMailbox::hasPendingChanges()
 		return 0;
 
 	if ( !synchronized ) {
-		DPF( dMAILBOX, "&&&& HPC??: [%s] - sync=%d callerChanged=%d value=%d\n",
-		     description, synchronized, callerChanged, __contents  );
+		// DPF( dMAILBOX, "&&&& HPC??: [%s] - sync=%d callerChanged=%d value=%d\n",
+		//      description, synchronized, callerChanged, __contents  );
 	}
 
 	return !synchronized;
