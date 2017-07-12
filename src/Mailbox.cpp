@@ -215,3 +215,10 @@ uint32_t SmallMailbox::getLong()
 {
 	return ( __contents );
 }
+
+int32_t SmallMailbox::getLongSigned()
+{
+	return ( (signed long)__contents );
+}
+
+

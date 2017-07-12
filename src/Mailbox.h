@@ -79,7 +79,7 @@ public:
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
 
-	typedef void (*OnChangeHandler)(Mailbox *m, bool hasChanged );
+	typedef void (*OnChangeHandler)(SmallMailbox *m, bool hasChanged );
 	OnChangeHandler onChange = 0;
 
 	bool changeTrigger; // One shot for change notifications
@@ -88,7 +88,8 @@ public:
 
 	void setLong( uint32_t v );
 	uint32_t getLong();
-
+	int32_t getLongSigned();
+	
 private:
 	uint32_t __contents;
 
