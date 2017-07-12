@@ -18,23 +18,15 @@
 EncoderPeripheral encoder;
 
 UNIXSocketDatalink um;
-auto sm = SmallMailbox( 0, "Test mailbox" );
-
-DeviceProfile dp;
 
 void handleCommand(char *cmd, int len );
 
 int main(int argc, const char * argv[])
 {
 	FAKEHARDWAREID = 0x8877;
-	Makernet.network.role = Network::master;
-
 	Makernet.network.useDatalink( &um );
 
-	Makernet.network.address = 10;
-
-
-	Makernet.initialize();
+	Makernet.initialize( DeviceType::Controller );
 
 	startMicrosecondCounter();
 

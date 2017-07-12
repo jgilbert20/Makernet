@@ -32,7 +32,6 @@
 
 void UNIXSocketDatalink::initialize()
 {
-
 	int t, len;
 
 	char str[100];

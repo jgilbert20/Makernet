@@ -46,7 +46,7 @@ void SmallMailbox::busReset()
 		synchronized = 1;
 
 	DPF( dMAILBOX | dRESET, "&&&& RESET: [%s] - sync=%d callerChanged=%d value=%d\n",
-	     description,synchronized, callerChanged, __contents  );
+	     description, synchronized, callerChanged, __contents  );
 }
 
 void SmallMailbox::trigger()
@@ -60,10 +60,13 @@ int SmallMailbox::hasPendingChanges()
 {
 	if ( !retryTimer.ready() )
 		return 0;
-	return !synchronized;
 
+	if ( !synchronized ) {
 		DPF( dMAILBOX, "&&&& HPC??: [%s] - sync=%d callerChanged=%d value=%d\n",
-	     description,synchronized, callerChanged, __contents  );
+		     description, synchronized, callerChanged, __contents  );
+	}
+
+	return !synchronized;
 }
 
 struct SmallMailboxMessage {

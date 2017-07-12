@@ -31,7 +31,10 @@
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
-#define DEBUGLEVEL    dDCS|dERROR|dWARNING|dSTATUSMSG|dMAILBOX|dRESET
+#define DEBUGLEVEL    	dMAILBOX|dWARNING|dERROR
+//|dSTATUSMSG|dDCS|dERROR|dWARNING|dDATALINK
+
+/// dDCS|dERROR|dWARNING|dSTATUSMSG|dMAILBOX|dRESET
 
 // dMAILBOX|dWARNING|dERROR|dSTATUSMSG
 //   (dSTATUSMSG|dOBJFRAMEWORK)
@@ -48,7 +51,6 @@
 #define DPR( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebug( X ); }
 #define DFL( mask )	    		if( ((mask) & (DEBUGLEVEL)) > 0 ) { DEBUGSERIAL.flush(); }
 #define DLN( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebugln( X ); }
-//#define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebug( "<<NoPrintf>\n" ); }
 #define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
 #define HPR( mask, ptr, size )  if( ((mask) & (DEBUGLEVEL)) > 0 ) { hexPrint( ptr, size ) }
 

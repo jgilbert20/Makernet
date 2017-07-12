@@ -31,7 +31,7 @@ public:
 private:
 
 	boolean isResettingBus = false;
-	Interval pollingTimer = Interval(1000);
+	Interval pollingTimer = Interval(1);
 };
 
 #define DCS_REQUEST_ADDRESS  0x50

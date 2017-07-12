@@ -14,7 +14,7 @@
 #include <I2CDatalink.h>
 #include <Debug.h>
 #include <Network.h>
-#include <Makernet.h>
+// #include <MakernetSingleton.h>
 #include <Types.h>
 
 #define MAKERNET_BROADCAST_I2C 0x09
@@ -23,6 +23,9 @@
 I2CDatalink *_datalink;
 
 #include <Wire.h>
+
+long receiveEventCount = 0;
+long requestEventCount = 0;
 
 
 
@@ -36,6 +39,21 @@ I2CDatalink *_datalink;
 // slave). Only called in cases where we are a I2C slave.
 
 static void I2CDatalink_receiveEvent(int howMany) {
+
+receiveEventCount++;
+
+	if( _datalink->returnFrameSize > 0 )
+	{
+		// Repeated observation seems to show that receive is called 2X the times of reqest.
+		// Not sure why this would be since the caller ALWAYS does both things.
+		// This hack skips the next read in cases where there is a pending frame
+
+		// DLN( dANY, "WARNING: next receive occured before prepared packet sent\n");
+		// DPF( dANY, "should be same: %ld %ld\n", receiveEventCount, requestEventCount );
+		return;
+	}
+
+
 	uint8_t p = 0;
 
 	DPR( dDATALINK, ">>>> (");
@@ -56,6 +74,9 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	DPR( dDATALINK, p);
 	DLN( dDATALINK );
 	DFL( dDATALINK );
+
+	// if( _datalink->returnFrameSize > 0 )
+	// 	return;
 
 	DLN( dDATALINK, "^^^^ Sending frame up to network layer" );
 
@@ -79,6 +100,8 @@ static void I2CDatalink_receiveEvent(int howMany) {
 			_datalink->returnFrameSize = 0;
 		}
 	}
+
+	// reDone = 0; 
 }
 
 // function that executes whenever data is requested by master this function
@@ -90,6 +113,11 @@ static void I2CDatalink_receiveEvent(int howMany) {
 // This function is never used when we operate in Master mode
 
 static void I2CDatalink_requestEvent() {
+
+requestEventCount++;
+
+// if( reDone == 1 )
+	// DLN( dANY, "Warning - one interrupted the other!\n");
 
 	if ( _datalink->returnFrameSize <= 0 ) {
 		DLN( dDATALINK, "|||| I2C requesed a frame but none has been readied. Going silent.")
@@ -153,6 +181,12 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 		// Now read from the remote side...
 
+
+   //  Not clear what this does but its in EKTs code
+   while (Wire.available()) {
+     Wire.read();
+   }
+
 //		DLN( dDATALINK, "Starting read...");
 
 		uint8_t recvSize = Wire.requestFrom(9, MAX_MAKERNET_FRAME_LENGTH);    // request 6 bytes from slave device #8
@@ -165,6 +199,8 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 
 		int count = 0;
 
+		int ffCount = 0; 
+
 		while (Wire.available()) { // slave may send less than requested
 			char c = Wire.read(); // receive a byte as character
 
@@ -176,11 +212,15 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			if ( count < MAX_MAKERNET_FRAME_LENGTH )
 				frameBuffer[count] = c;
 			count++;
+
+			if( c == 0xFF ) ffCount++;
 		}
 
 		DPR( dDATALINK, "READ DONE, actual sz=" );
 		DPR( dDATALINK, count );
 		DLN( dDATALINK );
+
+		if(ffCount!=count)
 
 		Makernet.network.handleFrame( _datalink->frameBuffer, count );
 

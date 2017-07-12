@@ -79,7 +79,7 @@ public:
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
 
-	Interval retryTimer = Interval(100);
+	Interval retryTimer = Interval(1000);
 
 	void setLong( uint32_t v );
 	uint32_t getLong();

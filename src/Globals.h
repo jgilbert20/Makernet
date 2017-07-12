@@ -16,7 +16,7 @@
 
 #define ADDR_UNASSIGNED 0x00
 #define ADDR_BROADCAST  0xFF
-
+#define ADDR_CONTROLLER 0x01
 
 // If true, support for controllers will be included in the runtime. There is
 // no harm in leaving this on all the time, but it contributes to code size.

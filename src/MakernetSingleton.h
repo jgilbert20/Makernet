@@ -19,9 +19,11 @@
 // framework objects like Network and Datalink.
 //
 
+#include <I2CDatalink.h>
 #include <Interval.h>
 #include <Packet.h>
 #include <Network.h>
+#include <MailboxService.h>
 
 class _Makernet {
 public:
@@ -31,10 +33,21 @@ public:
 	uint16_t hardwareID;
 	uint16_t generation;
 
-	void initialize();
+	void initialize( DeviceType d );
+	void initialize( DeviceType d, MailboxService& ms );
 	void loop();
 	void busReset();
 	void issueBusReset();
+
+	// Only used if i'm a peripheral
+	DeviceProfile controller;
+
+// #ifdef ARDUINO
+// 	I2CDatalink i2cDatalink;
+// #endif
+
+
+
 };
 
 extern _Makernet Makernet;

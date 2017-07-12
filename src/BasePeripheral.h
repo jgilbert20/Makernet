@@ -17,7 +17,6 @@
 #include <Network.h>
 #include <MakernetSingleton.h>
 
-
 // Baseperipheral.h
 
 // The base peripheral class defines a group of proxy objects that provide a

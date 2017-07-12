@@ -56,8 +56,9 @@ int DeviceControlService::handlePacket(Packet *p)
 
 	DeviceControlMessage *dm = (DeviceControlMessage *)p->payload;
 
-	DPR( dDCS, "DCS: handle packet, cmd=");
-	DLN( dDCS, dm->command );
+	// dSLOWLOOP
+	// DPR( dDCS, "DCS: handle packet, cmd=");
+	// DLN( dDCS, dm->command );
 
 #if CONTROLLER_SUPPORT
 	if ( dm->command == DCS_REQUEST_ADDRESS && Makernet.network.role == Network::master ) {
@@ -192,7 +193,7 @@ int DeviceControlService::pollPacket(Packet *p)
 	if ( CONTROLLER_SUPPORT && Makernet.network.role == Network::master )
 		if ( pollingTimer.hasPassed() )
 		{
-			DLN( dDCS | dPOLL, "DCS: Time for a general network polling packet!");
+			// DLN( dDCS | dPOLL, "DCS: Time for a general network polling packet!");
 			p->dest = ADDR_BROADCAST;
 			p->destPort = 0;
 			p->size = 1;
@@ -229,9 +230,9 @@ int DeviceControlService::pollPacket(Packet *p)
 void DeviceControlService::busReset()
 {
 	DLN( dDCS, "DCS: handleBusReset...");
-//	DPR( dDCS, "DCS: Releaseing address" );
 
-	Makernet.network.address = ADDR_UNASSIGNED;
+	if ( Makernet.network.role != Network::master )
+		Makernet.network.address = ADDR_UNASSIGNED;
 }
 
 

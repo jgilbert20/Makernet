@@ -80,14 +80,14 @@ void MailboxService::pointPacketToEndpoint( Packet *p )
 	hexPrint( dNETWORK, (uint8_t *)p, 25 );
 	DLN( dNETWORK );
 
-	DPF( dMAILBOX, "Src = %d\n", p->dest );
+	DPF( dNETWORK, "Src = %d\n", p->dest );
 
 }
 
 
 int MailboxService::pollPacket( Packet *p )
 {
-	DLN( dMAILBOX|dPOLL, "POLL: Mailbox poll");
+	// DLN( dMAILBOX|dPOLL, "POLL: Mailbox poll");
 	// Check if we have a valid destination configured
 
 	if ( defaultEndpoint == NULL or defaultEndpoint->address == ADDR_UNASSIGNED ) {

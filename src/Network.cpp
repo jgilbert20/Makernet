@@ -63,12 +63,14 @@ int Network::pollPacket(Packet *p)
 		}
 	}
 
+#if CONTROLLER_SUPPORT
 	// If we are the master, do the same for every BasePeripheral object
 	if ( role == Network::master ) {
 		int r = BasePeripheral::pollPacket(p);
 		if ( r > 0 )
 			return r;
 	}
+#endif
 
 	return 0;
 }
@@ -235,12 +237,12 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	Packet *mp = (Packet *)buffer;
 
 	if (!((mp->dest == ADDR_BROADCAST) or (address == ADDR_UNASSIGNED) or (address == mp->dest ))) {
-		DLN( dNETWORK | dWARNING, "Dropping packet not for us");
+		DLN( dNETWORK | dWARNING, "handleFrame: Dropping packet not for us");
 		return;
 	}
 
 	if ( mp->destPort < 0 or mp->destPort >= NUM_PORTS ) {
-		DLN( dNETWORK | dERROR, "Dropping invalid packet port.");
+		DLN( dNETWORK | dERROR, "handleFrame: Dropping invalid packet port.");
 		return;
 	}
 
