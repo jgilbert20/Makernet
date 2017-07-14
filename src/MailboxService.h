@@ -49,6 +49,9 @@ public:
 	// virtual void loop();
 	virtual void busReset();
 
+
+	void attachObserver( IMailboxObserver *obs);
+
 	Mailbox *mailboxes[MAX_MAILBOXS_PER_SERVICE];
 
 	// Setters and getters

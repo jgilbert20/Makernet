@@ -12,15 +12,27 @@
 #include <KeypadPeripheral.h>
 #include <Debug.h>
 
+#include <GenericFunction.h>
+
 KeypadPeripheral::KeypadPeripheral() :
 	BasePeripheral(DeviceType::Keypad)
 {
 }
 
+
 void KeypadPeripheral::configure()
 {
 	registerService( 1, &keypadMailboxSvc );
+	keypadMailboxSvc.attachObserver( this );
 	// keypadMailboxSvc.event.onChange = [=](SmallMailbox (*m), bool hasChanged ) {
 	// 	DPF( dANY, "Got a change!! %d\n", m->getLongSigned() );
 	// };
+}
+
+void KeypadPeripheral::onMailboxChange( Mailbox *m, bool wasTriggered )
+{
+
+	DPF( dANY, "Got a mailbox change\n");
+
+
 }

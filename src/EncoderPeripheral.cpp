@@ -30,7 +30,14 @@ EncoderPeripheral::EncoderPeripheral() :
 void EncoderPeripheral::configure()
 {
 	registerService( 1, &encoderMailboxSvc );
-	encoderMailboxSvc.position.onChange = [](SmallMailbox *m, bool hasChanged ) -> void {
-		DPF( dANY, "Got a change!! %d\n", m->getLongSigned() );
-	};
+
+	encoderMailboxSvc.attachObserver( this );
+	// encoderMailboxSvc.position.onChange = [](SmallMailbox *m, bool hasChanged ) -> void {
+	// 	DPF( dANY, "Got a change!! %d\n", m->getLongSigned() );
+	// };
+}
+
+void EncoderPeripheral::onMailboxChange( Mailbox *m, bool wasTriggered )
+{
+
 }

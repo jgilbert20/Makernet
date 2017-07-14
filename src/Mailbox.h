@@ -20,6 +20,16 @@
 
 #define MAILBOX_OP_FOURBYTE_DEFINITIVE 0x10
 
+class Mailbox;
+
+class IMailboxObserver {
+public:
+	virtual void onMailboxChange( Mailbox *m, bool wasTriggered ) = 0;
+};
+
+
+
+
 // A mailbox represents an extremely flexible place where values can be set
 // and get by multiple nodes on a network. Any time a mailbox is set, it
 // triggers a push to a remote mailbox. Remote mailboxes can easily be used to
@@ -55,6 +65,8 @@ public:
 
 	uint8_t flags;
 
+	IMailboxObserver *observer; 
+
 	virtual void busReset();
 	virtual void trigger() = 0;
 	virtual int generateMessage( uint8_t *buffer, int size ) = 0;
@@ -81,6 +93,16 @@ struct KeyEvent {
 // #endif
 
 
+// I'm still getting used to the C++ model of observers and delegates. Not
+// sure if this is really the right level of abstraction.
+
+// struct SmallMailboxEvent {
+// 	enum Type { CHANGE } type;
+// 	Mailbox mailbox;
+// 	bool triggered;
+// };
+
+
 
 
 // Small mailbox is an implementation of a mailbox of a small number of bytes
@@ -98,8 +120,8 @@ public:
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
 
-	typedef void (*OnChangeHandler)(SmallMailbox *m, bool hasChanged );
-	OnChangeHandler onChange = 0;
+	// typedef void (*OnChangeHandler)(SmallMailbox *m, bool hasChanged );
+	// OnChangeHandler onChange = 0;
 
 	bool changeTrigger; // One shot for change notifications
 
@@ -111,6 +133,10 @@ public:
 
 	// Candidate for refactor to own subclass
 	void enqueueEvent( KeyEvent kv );
+
+
+
+//	SmallMailboxEvent curentEvent;
 
 private:
 	uint32_t __contents;

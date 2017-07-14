@@ -36,12 +36,15 @@ public:
 };
 
 
-class EncoderPeripheral : public BasePeripheral {
+class EncoderPeripheral : public BasePeripheral, public IMailboxObserver {
 public:
 	EncoderPeripheral();
 	virtual void configure();
 
 	EncoderMailboxService encoderMailboxSvc;
+
+	// From IMailboxObserver
+	virtual void onMailboxChange( Mailbox *m, bool wasTriggered );
 
 };
 

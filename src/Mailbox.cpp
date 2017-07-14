@@ -147,8 +147,8 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		if ( msg->command == SmallMailboxMessage::Command::SEND_VALUE_CHANGE )
 			changeTrigger = 1;
 
-		if ( onChange != NULL )
-			onChange( this, changeTrigger );
+		if ( observer != NULL )
+			observer->onMailboxChange( this, changeTrigger );
 
 		changeTrigger = 0;
 

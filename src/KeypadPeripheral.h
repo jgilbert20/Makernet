@@ -32,12 +32,16 @@ public:
 };
 
 
-class KeypadPeripheral : public BasePeripheral {
+class KeypadPeripheral : public BasePeripheral, public IMailboxObserver {
 public:
 	KeypadPeripheral();
 	virtual void configure();
 
 	KeypadMailboxService keypadMailboxSvc;
+
+// From IMailboxObserver
+	virtual void onMailboxChange( Mailbox *m, bool wasTriggered );
+
 
 };
 

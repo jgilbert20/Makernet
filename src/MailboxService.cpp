@@ -64,6 +64,13 @@ int MailboxService::nextPendingMailboxIndex()
 	return -11;
 }
 
+void MailboxService::attachObserver( IMailboxObserver *obs)
+{
+	for ( int i = 0 ; i < MAX_MAILBOXS_PER_SERVICE ; i++ )
+		if ( mailboxes[i] != NULL )
+			mailboxes[i]->observer = obs; 
+}
+
 void MailboxService::pointPacketToEndpoint( Packet *p )
 {
 	if ( defaultEndpoint == NULL ) {
