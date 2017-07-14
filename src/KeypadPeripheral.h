@@ -25,7 +25,7 @@
 
 class KeypadMailboxService : public MailboxService {
 public:
-	SmallMailbox event   = SmallMailbox(0, "Encoder position");
+	SmallMailbox event = SmallMailbox(0, "Keypad event");
 	virtual void configure() {
 		set( 0, event );
 	};

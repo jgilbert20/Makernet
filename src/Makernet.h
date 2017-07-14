@@ -13,6 +13,8 @@
 #ifndef MAKERNET_H
 #define MAKERNET_H
 
+
+// Infrastructure
 #include <Packet.h>
 #include <Interval.h>
 #include <Network.h>
@@ -21,11 +23,11 @@
 #include <MailboxService.h>
 #include <MakernetSingleton.h>
 
-
+// Peripherals
 #include <EncoderPeripheral.h>
+#include <KeypadPeripheral.h>
 
-
-
+// Datalinks
 #include <I2CDatalink.h>
 
 

@@ -64,6 +64,25 @@ public:
 
 
 
+// Candidate for refactor to own subclass
+
+struct KeyEvent {
+	enum class Action : uint8_t { PRESSED, HELD, RELEASED, IDLE } action;
+	char key;
+	char unused1;
+	char unused2;
+	// operator long() { return (long) * this; } // vodoo, but does it work?
+} __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
+
+
+
+// #if( sizeof(KeyEventMessage) != sizeof(long) )
+// #error "KeyEventMessage must be exactly 4 bytes"
+// #endif
+
+
+
+
 // Small mailbox is an implementation of a mailbox of a small number of bytes
 // like an RGB value or an integer.  It always uses opcode 0 to update
 // (transmission of whole value) and it doesn't worry about version numbers.
@@ -89,7 +108,10 @@ public:
 	void setLong( uint32_t v );
 	uint32_t getLong();
 	int32_t getLongSigned();
-	
+
+	// Candidate for refactor to own subclass
+	void enqueueEvent( KeyEvent kv );
+
 private:
 	uint32_t __contents;
 

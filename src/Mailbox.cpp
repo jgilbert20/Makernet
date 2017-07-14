@@ -144,10 +144,10 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		// as opposed to a value being sent over during a synchronization. As soon
 		// as we dispatch the event, changeTrigger should be made zero.
 
-		if( msg->command == SmallMailboxMessage::Command::SEND_VALUE_CHANGE )
+		if ( msg->command == SmallMailboxMessage::Command::SEND_VALUE_CHANGE )
 			changeTrigger = 1;
 
-		if( onChange != NULL )
+		if ( onChange != NULL )
 			onChange( this, changeTrigger );
 
 		changeTrigger = 0;
@@ -202,13 +202,13 @@ void SmallMailbox::setLong( uint32_t v )
 	callerChanged = 1;
 	changeTrigger = 1;
 
-	DPR( dMAILBOX, "&&&& MailboxChange: [");
-	DPR( dMAILBOX, description );
-	DPR( dMAILBOX, "] set to: [");
-	hexPrint( dMAILBOX, contents, 4 );
-	DPR( dMAILBOX, "] as long: [");
-	DPR( dMAILBOX, __contents );
-	DLN( dMAILBOX, "]");
+	DPR( dMAILBOX | dMAILBOXVALUES, "&&&& MailboxChange: [");
+	DPR( dMAILBOX | dMAILBOXVALUES, description );
+	DPR( dMAILBOX | dMAILBOXVALUES, "] set to: [");
+	hexPrint( dMAILBOX | dMAILBOXVALUES, contents, 4 );
+	DPR( dMAILBOX | dMAILBOXVALUES, "] as long: [");
+	DPR( dMAILBOX | dMAILBOXVALUES, __contents );
+	DLN( dMAILBOX | dMAILBOXVALUES, "]");
 }
 
 uint32_t SmallMailbox::getLong()
@@ -222,3 +222,12 @@ int32_t SmallMailbox::getLongSigned()
 }
 
 
+
+// Consider forking this
+
+void SmallMailbox::enqueueEvent( KeyEvent kv )
+{
+	uint32_t tmp;
+	memcpy( &tmp, &kv, sizeof( tmp ));
+	setLong( tmp );
+}

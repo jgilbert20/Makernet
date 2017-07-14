@@ -78,7 +78,7 @@ void _Makernet::initialize( DeviceType d )
 
 void _Makernet::busReset()
 {
-	DLN( dSTATUSMSG, "Makernet: Handling bus reset request on whole framework!" );
+	DLN( dRESET, "Makernet: Full bus reset" );
 	network.busReset();
 
 #if CONTROLLER_SUPPORT
@@ -89,15 +89,26 @@ void _Makernet::busReset()
 
 void _Makernet::issueBusReset()
 {
-	DLN( dSTATUSMSG, "Issuing global bus reset to network!" );
+	DLN( dRESET, "Issuing global bus reset to network!" );
 
 	network.issueBusReset();
 }
 
 void _Makernet::loop()
 {
-	if ( reportingInterval.hasPassed() )
-		DPF( dSTATUSMSG, "+++ STATUS +++ hwID[%d] type[%d] gen[%d] millis=[%u]\n", hardwareID, deviceType, generation, millis() );
+	if ( reportingInterval.hasPassed() ){
+//		DPF( dSTATUSMSG, "+++ STATUS: hwID[%d] type[%d] gen[%d] millis=[%u]\n", hardwareID, deviceType, generation, millis() );
+
+		DPR( dSTATUSMSG, "+++ STATUS: hwID[");
+		DPR( dSTATUSMSG, hardwareID );
+		DPR( dSTATUSMSG, "] millis=[");
+		DPR( dSTATUSMSG, millis() );
+		DPR( dSTATUSMSG, "] netAddress=[");
+		DPR( dSTATUSMSG, network.address );
+		DPR( dSTATUSMSG, "]");
+		DLN( dSTATUSMSG );
+
+	}
 
 	network.loop();
 }

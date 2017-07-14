@@ -1,6 +1,6 @@
 /********************************************************
  **
- **  DeviceControlServce.h
+ **  DeviceControlService.h
  **
  **  Part of the Makernet framework by Jeremy Gilbert
  **

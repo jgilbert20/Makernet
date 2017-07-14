@@ -27,7 +27,7 @@
 
 class _Makernet {
 public:
-	Interval reportingInterval = Interval(5000);
+	Interval reportingInterval = Interval(1000);
 	Network network;
 	DeviceType deviceType;
 	uint16_t hardwareID;

@@ -27,11 +27,12 @@
 #define dROUTE        1 << 10
 #define dPOLL         1 << 11
 #define dRESET        1 << 12
+#define dMAILBOXVALUES        1 << 13
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
-#define DEBUGLEVEL    	dMAILBOX|dWARNING|dERROR|dSTATUSMSG
+#define DEBUGLEVEL    dMAILBOXVALUES|dSTATUSMSG|dMAILBOX|dWARNING|dERROR|dSTATUSMSG
 //|dSTATUSMSG|dDCS|dERROR|dWARNING|dDATALINK
 
 /// dDCS|dERROR|dWARNING|dSTATUSMSG|dMAILBOX|dRESET
