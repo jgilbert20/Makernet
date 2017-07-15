@@ -13,6 +13,8 @@
 #ifndef KEYPADPERIPHERAL_H
 #define KEYPADPERIPHERAL_H
 
+#include <GenericFunction.h>
+
 #include <BasePeripheral.h>
 #include <Mailbox.h>
 #include <MailboxService.h>
@@ -42,6 +44,10 @@ public:
 // From IMailboxObserver
 	virtual void onMailboxChange( Mailbox *m, bool wasTriggered );
 
+	// Callbacks
+	typedef void (*KeypadEventHandler)( KeyEvent *e );
+	void onKeyEvent( KeypadEventHandler h ) { keyEventHandler = h; };
+	KeypadEventHandler keyEventHandler = NULL; 
 
 };
 

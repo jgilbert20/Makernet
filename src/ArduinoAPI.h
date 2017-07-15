@@ -21,9 +21,11 @@
 #ifndef ARDUINO_API_H
 #define ARDUINO_API_H
 
-#ifdef ARDUINO
 
 #include <Types.h>
+
+#ifdef ARDUINO
+
 #include <Arduino.h>
 
 #else

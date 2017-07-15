@@ -258,9 +258,13 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	     mp->dest, mp->src, mp->destPort, mp->size, packetSize );
 	DLN( dNETWORK );
 
+	// Surpress this warning - its extremely common because I2C code in Arduino
+	// routinely doesn't detect when the client is "done" and reads the full length 
+	// of the buffer
+#if 0 
 	if ( packetSizeWithCRC != len)
 		DPF( dNETWORK | dWARNING, "%%%%%%%% WARNING: Inbound frame size [%d] != frameSize [%d]; ignoring extras!\n", packetSizeWithCRC, len  )
-
+#endif 
 		// Verify checksum
 		uint8_t calculatedCRC = calculateCRC(0, buffer, packetSize );
 	uint8_t presentedCRC = buffer[packetSize];

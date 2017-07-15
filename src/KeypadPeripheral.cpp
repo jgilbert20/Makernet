@@ -29,10 +29,20 @@ void KeypadPeripheral::configure()
 	// };
 }
 
+// Registered callback. wasTriggered tells us that a specific "new" item was
+// put in the mailbox for us as opposed to a new value simply being
+// synchronized after a network reset.
+
 void KeypadPeripheral::onMailboxChange( Mailbox *m, bool wasTriggered )
 {
 
 	DPF( dANY, "Got a mailbox change\n");
 
+	if( m == &keypadMailboxSvc.event ) {
+		SmallMailbox *km = (SmallMailbox *)m;
+		if( wasTriggered )
+			if( keyEventHandler )
+				keyEventHandler( km->getValueAsKeyEventPtr() );
+	}
 
 }

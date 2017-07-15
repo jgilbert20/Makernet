@@ -46,26 +46,10 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	// This erroneous behavior been verified with a extremely simple test case. 
 	// If we allow this frame to go up to the network stack, we'll globber the
 	// response we want to store. This hack prevents that routing.
-
 	if( howMany < 1 )
 		return; 
-	
-
-
 
 	receiveEventCount++;
-
-	// if ( _datalink->returnFrameSize > 0 )
-	// {
-	// 	// Repeated observation seems to show that receive is called 2X the times of reqest.
-	// 	// Not sure why this would be since the caller ALWAYS does both things.
-	// 	// This hack skips the next read in cases where there is a pending frame
-
-	// 	// DLN( dANY, "WARNING: next receive occured before prepared packet sent\n");
-	// 	// DPF( dANY, "should be same: %ld %ld\n", receiveEventCount, requestEventCount );
-	// 	return;
-	// }
-
 
 	uint8_t p = 0;
 
@@ -87,9 +71,6 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	DPR( dDATALINK, p);
 	DLN( dDATALINK, ")");
 	DFL( dDATALINK );
-
-	// if( _datalink->returnFrameSize > 0 )
-	// 	return;
 
 	DLN( dDATALINK, "^^^^ Sending frame up to network layer" );
 

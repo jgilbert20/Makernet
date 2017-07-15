@@ -231,3 +231,8 @@ void SmallMailbox::enqueueEvent( KeyEvent kv )
 	memcpy( &tmp, &kv, sizeof( tmp ));
 	setLong( tmp );
 }
+
+KeyEvent *SmallMailbox::getValueAsKeyEventPtr()
+{
+	return (KeyEvent *)contents;
+}

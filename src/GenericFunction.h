@@ -12,6 +12,10 @@
 #ifndef GENERICFUNCTION_H
 #define GENERICFUNCTION_H
 
+#define CLOSURE_STATE_SIZE 8
+
+#include <strings.h>
+#include <Debug.h>
 
 template <typename T>
 class generic_function;
@@ -21,15 +25,25 @@ class generic_function<ReturnValue(Args...)> {
 public:
     template <typename T>
     generic_function& operator=(T t) {
-        callable_ = new CallableT<T>(t);
+        auto func = new CallableT<T>(t);
+        size_ = sizeof( func ); // for instrumentation, OK to remove
+        if( sizeof(func) > CLOSURE_STATE_SIZE ){
+        	DPR( dSTLEMBED, "Closure too big");
+        	while(1) ;
+        }
+        memcpy( closureState_, (void *)&func, sizeof(func) );
+        // callable_ = (ICallable *)closureState_;
         return *this;
     }
     
     ReturnValue operator()(Args... args) const {
-        //assert(callable_);
-        return callable_->Invoke(args...);
+        // assert(callable_);
+        return ((ICallable *)closureState_)->Invoke(args...);
     }
     
+    // Temporary hack
+     uint8_t size_ = 0; 
+
 private:
     class ICallable {
     public:
@@ -53,28 +67,30 @@ private:
     private:
         T t_;
     };
-    
-     ICallable *callable_;
+
+//     ICallable *callable_;
+     uint8_t closureState_[CLOSURE_STATE_SIZE];
+
 };
 
-int toCapture = 1;
+// int toCapture = 1;
 
 
-void func() {
-    toCapture++;
-}
+// void func() {
+//     toCapture++;
+// }
 
 
-int jimmy() {
-    generic_function<void()> f;
-    f = func;
-    f();
+// int jimmy() {
+//     generic_function<void()> f;
+//     f = func;
+//     f();
     
-    f = [=]() {  toCapture++;  };
-    f();
+//     f = [=]() {  toCapture++;  };
+//     f();
     
-    return 0;
-}
+//     return 0;
+// }
 
 
 

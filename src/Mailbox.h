@@ -133,7 +133,7 @@ public:
 
 	// Candidate for refactor to own subclass
 	void enqueueEvent( KeyEvent kv );
-
+	KeyEvent *getValueAsKeyEventPtr();
 
 
 //	SmallMailboxEvent curentEvent;
