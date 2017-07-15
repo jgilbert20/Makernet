@@ -45,16 +45,18 @@ struct Packet : public PacketHeader {
 // messages so its type needs be explicitly defined so it can be consistent
 // across platforms. (C++11 actually does allow subclassing from a integer
 // type but its unclear if this is supported across all makernet desired
-// platforms
+// platforms (update - every compiler I've checked does allow C++11 and now other 
+// parts of the code use this brevity optimization so this is safe to refactor.)
 
 enum class DeviceType {
 	Unassigned = 0,
 	Controller = 1,
-	Encoder = 2,
-	Keypad = 3
-} ;
-// This structure defines the essential parameters of a device identity.
+	Encoder    = 2,
+	Keypad     = 3,
+	GPIO       = 4
+};
 
+// This structure defines the essential parameters of a device identity.
 struct DeviceProfile
 {
 	void reset() { connected = false; hardwareID = HWID_UNASSIGNED; address = ADDR_UNASSIGNED; };

@@ -44,7 +44,7 @@ public:
 // From IMailboxObserver
 	virtual void onMailboxChange( Mailbox *m, bool wasTriggered );
 
-	// Callbacks
+// Callbacks
 	typedef void (*KeypadEventHandler)( KeyEvent *e );
 	void onKeyEvent( KeypadEventHandler h ) { keyEventHandler = h; };
 	KeypadEventHandler keyEventHandler = NULL; 
