@@ -15,12 +15,14 @@
 // properly implemented in the ArduinoCore.
 //
 // In the case that we are on the actual Arduino platform this file pulls in
-// the main header file. Otherwise, it defines constants and functions that
-// allow a non-Arduino platform (such as UNIX) to hobble along.
+// the main header file.
+
+// In the case we are not on an arduino platform (such as UNIX), this defines
+// constants and functions that allow a non-Arduino platform (such as UNIX) to
+// hobble along and 'fake' it. 
 
 #ifndef ARDUINO_API_H
 #define ARDUINO_API_H
-
 
 #include <Types.h>
 
@@ -32,6 +34,16 @@
 
 #define HEX 0x10
 uint32_t millis();
+
+// from wiring_constants.h
+
+#define LOW             (0x0)
+#define HIGH            (0x1)
+
+#define INPUT           (0x0)
+#define OUTPUT          (0x1)
+#define INPUT_PULLUP    (0x2)
+#define INPUT_PULLDOWN  (0x3)
 
 #endif
 

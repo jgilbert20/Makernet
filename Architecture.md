@@ -292,6 +292,37 @@ the general rule for pairing is that first we seek to find an exact hardware mat
 all of this is implemented by populating a deviceprofile object and passing it to "requestPair()". On true, the pairing is established and the address is assigned. On false, the next eligble object is consulted.
 
 
+# Revisiting mailboxes
+
+For the GPIO, we ideally need mailboxes that handle more than 4 bytes, e.g. for a vector of PWM values
+
+This is less important now but will be in the future
+
+Also, its intriguing that there are so many similarities between  TCP and the mailbox format
+
+lets take a simple example of a long mailbox that is too long to fit into a single packet
+
+if we define a "partial update" opcode saying something like "start at position 0 in the buffer and here are the next N bytes" we have a powerful primitive.
+
+now our code can pick a chunk size dividing into M chunks say 0...5.
+
+and it runs a counter starting at 0 going to 5. For each of them we fire out a packet of an update and then start a retry timer.
+
+we also have a finalize trigger opcode that is basically "you are done if your checksum reads xxxx". This is the 7th transmission.
+
+Now we listen for ACKs. We should get 7 acks. But if we don't, we resent just the buffers that we didn't receive. 
+
+Each push has a generation numebr with it. If the genreation numebr changes, the entire process is restarted and we clear our acklist.
+
+All the client has to do is ack what it gets and apply to its buffer. And when the finalize packet comes, store the checksum. 
+
+But we can do better then that, right? the client theorieticlly also knows how many chunks there are and can track which ones it got.
+
+the way TCP works is that usually the receiver sends back the sequence of the next transmission its expecting. this generates a bit of pacing, allowing a more sophisticaed algorithim to slow down to match the incoming rate of the acks.
+
+
+
+
 
 
 

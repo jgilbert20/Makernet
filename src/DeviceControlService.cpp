@@ -1,6 +1,6 @@
 /********************************************************
  **
- **  DeviceControlServce.cpp
+ **  DeviceControlService.cpp
  **
  **  Part of the Makernet framework by Jeremy Gilbert
  **
@@ -30,7 +30,7 @@ void DeviceControlService::configure()
 
 #if CONTROLLER_SUPPORT
 
-// Holds the next available address if there isn't one already Staring
+// Holds the next available address if there isn't one already. Staring
 // assignment at 0xA0 for ease of identification in packet dumps.
 
 uint8_t nextAddressToVend = 0xA0;
