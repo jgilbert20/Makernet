@@ -25,9 +25,9 @@
 
 class GPIOMailboxService : public MailboxService {
 public:
-	SmallMailbox pinModes   = SmallMailbox( 0, "pinModes" );
-	SmallMailbox pinValues  = SmallMailbox( 0, "pinValues" );
-	SmallMailbox pwmEnables = SmallMailbox( 0, "pwmEnables" );
+	IntegerMailbox pinModes   = IntegerMailbox( 0, "pinModes" );
+	IntegerMailbox pinValues  = IntegerMailbox( 0, "pinValues" );
+	IntegerMailbox pwmEnables = IntegerMailbox( 0, "pwmEnables" );
 	virtual void configure() {
 		set( 0, pinModes );
 		set( 1, pinValues );

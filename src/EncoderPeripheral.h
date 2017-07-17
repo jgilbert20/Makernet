@@ -25,9 +25,9 @@
 
 class EncoderMailboxService : public MailboxService {
 public:
-	SmallMailbox position   = SmallMailbox(0, "Encoder position");
-	SmallMailbox buttonDown = SmallMailbox(0, "Button down");
-	SmallMailbox buttonUp   = SmallMailbox(0, "Button up");
+	IntegerMailbox position   = IntegerMailbox(0, "Encoder position");
+	IntegerMailbox buttonDown = IntegerMailbox(0, "Button down");
+	IntegerMailbox buttonUp   = IntegerMailbox(0, "Button up");
 	virtual void configure() {
 		set( 0, position );
 		set( 1, buttonDown );

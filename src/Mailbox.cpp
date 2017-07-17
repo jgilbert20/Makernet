@@ -20,17 +20,13 @@
 
 void Mailbox::busReset()
 {
-
 }
 
 SmallMailbox::SmallMailbox(uint8_t configFlags, const char *d)
 {
-	contents = (uint8_t *)(void *)&__contents;
+	mailboxSize = 0;
 	flags = configFlags;
-	size = sizeof( __contents );
 	description = d;
-	if ( contents != NULL and size > 0 )
-		memset( contents, 0, size );
 	synchronized = 1;
 	callerChanged = 0;
 }
@@ -47,8 +43,8 @@ void SmallMailbox::busReset()
 
 	changeTrigger = 0;
 
-	DPF( dMAILBOX | dRESET, "&&&& RESET: [%s] - sync=%d callerChanged=%d value=%d\n",
-	     description, synchronized, callerChanged, __contents  );
+	DPF( dMAILBOX | dRESET, "&&&& RESET: [%s] - sync=%d callerChanged=%d\n",
+	     description, synchronized, callerChanged  );
 }
 
 int SmallMailbox::hasPendingChanges()
@@ -57,8 +53,8 @@ int SmallMailbox::hasPendingChanges()
 		return 0;
 
 	if ( !synchronized ) {
-		// DPF( dMAILBOX, "&&&& HPC??: [%s] - sync=%d callerChanged=%d value=%d\n",
-		//      description, synchronized, callerChanged, __contents  );
+		// DPF( dMAILBOX, "&&&& HPC??: [%s] - sync=%d callerChanged=%d\n",
+		//      description, synchronized, callerChanged  );
 	}
 
 	return !synchronized;
@@ -66,7 +62,7 @@ int SmallMailbox::hasPendingChanges()
 
 struct SmallMailboxMessage {
 	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE, SEND_VALUE_CHANGE } command;
-	uint32_t value;
+	uint8_t value[];
 } __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
 
 // Called by the framework when we've indicated a pending message is
@@ -74,7 +70,7 @@ struct SmallMailboxMessage {
 
 int SmallMailbox::generateMessage( uint8_t *buffer, int size )
 {
-	if (API_CHECK and ( size < sizeof( SmallMailboxMessage ) ))
+	if (API_CHECK and ( size < sizeof( SmallMailboxMessage ) + mailboxSize))
 		return -1;
 	if (API_CHECK and ( buffer == NULL ))
 		return -2;
@@ -90,16 +86,17 @@ int SmallMailbox::generateMessage( uint8_t *buffer, int size )
 	else
 		msg->command = SmallMailboxMessage::Command::SEND_VALUE;
 
-	msg->value = __contents;
+	// msg->value = __contents;
+	memcpy( msg->value, contents, mailboxSize );
 
 	retryTimer.reset();
 
-	return sizeof( SmallMailboxMessage );
+	return sizeof( SmallMailboxMessage ) + mailboxSize;
 }
 
 int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 {
-	if (API_CHECK and ( size < sizeof( SmallMailboxMessage ) ))
+	if (API_CHECK and ( size < sizeof( SmallMailboxMessage ) + mailboxSize ))
 		return -1;
 	if (API_CHECK and ( buffer == NULL ))
 		return -2;
@@ -119,7 +116,7 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 				DLN( dMAILBOX, "&&&& Contention: Disregarding incoming value");
 				synchronized = 0;
 				msg->command = SmallMailboxMessage::Command::ACK_VALUE;
-				return (sizeof( SmallMailboxMessage ));
+				return (sizeof( SmallMailboxMessage ) + mailboxSize );
 			} else {
 				DLN( dMAILBOX, "&&&& Contention: proceeding with normal update that overides our value");
 			}
@@ -127,18 +124,20 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 		// A normal update - accept the packet's data, mark internally as
 		// synchronized, and clear caller-changed flag
-		__contents = msg->value;
+		// __contents = msg->value;
+
+		memcpy( contents, msg->value, mailboxSize );
 
 		synchronized = 1;
 		callerChanged = 0;
 
-		DPR( dMAILBOX, "&&&& Mailbox value recv: [");
-		DPR( dMAILBOX, description );
-		DPR( dMAILBOX, "] updated over network to: [");
-		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(contents), 4 );
-		DPR( dMAILBOX, "] as ui32: [");
-		DPR( dMAILBOX, __contents );
-		DLN( dMAILBOX, "]");
+		DPR( dMAILBOX|dMAILBOXVALUES, "&&&& Mailbox value recv: [");
+		DPR( dMAILBOX|dMAILBOXVALUES, description );
+		DPR( dMAILBOX|dMAILBOXVALUES, "] updated over network to: [");
+		HPR( dMAILBOX|dMAILBOXVALUES, reinterpret_cast<uint8_t *>(contents), mailboxSize );
+		DPR( dMAILBOX|dMAILBOXVALUES, "] as ui32: [");
+		DPR( dMAILBOX|dMAILBOXVALUES, *(uint32_t *)contents );
+		DLN( dMAILBOX|dMAILBOXVALUES, "]");
 
 		// The _CHANGE varient is triggered once when a caller has issued the changes
 		// as opposed to a value being sent over during a synchronization. As soon
@@ -155,13 +154,13 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		// Reformat the message and send it back as an ACK
 		msg->command = SmallMailboxMessage::Command::ACK_VALUE;
 
-		return (sizeof( SmallMailboxMessage ));
+		return (sizeof( SmallMailboxMessage ) + mailboxSize );
 	}
 
 	if ( msg->command == SmallMailboxMessage::Command::ACK_VALUE ) {
 		// If the ACK does not contain the lastest value, remain
 		// unsynchronized so the update will occur on the next pass
-		if ( msg->value == __contents )
+		if ( memcmp( msg->value, contents, mailboxSize ) == 0 )
 			synchronized = 1;
 		else
 			DLN( dMAILBOX | dWARNING, "&&&& Mailbox ACK incorrect, not clearing sync flag" );
@@ -171,9 +170,9 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		DPR( dMAILBOX, "&&&& Mailbox value acknowledgement: [");
 		DPR( dMAILBOX, description );
 		DPR( dMAILBOX, "] updated over network to: [");
-		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(contents), 4 );
+		hexPrint( dMAILBOX, reinterpret_cast<uint8_t *>(contents), mailboxSize );
 		DPR( dMAILBOX, "] as ui32: [");
-		DPR( dMAILBOX, __contents );
+		DPR( dMAILBOX, *(uint32_t *)contents );
 		DLN( dMAILBOX, "]");
 
 		return 0;
@@ -192,7 +191,21 @@ void SmallMailbox::trigger()
 	retryTimer.trigger();
 }
 
-void SmallMailbox::setLong( uint32_t v )
+
+
+
+IntegerMailbox::IntegerMailbox(uint8_t configFlags, const char *d)
+	: SmallMailbox( configFlags, d )
+{
+	mailboxSize = 4;
+	contents = (uint8_t *)(void *)&__contents;
+	if ( contents != NULL and mailboxSize > 0 )
+		memset( contents, 0, mailboxSize );
+}
+
+
+
+void IntegerMailbox::setLong( uint32_t v )
 {
 	__contents = v;
 
@@ -207,32 +220,30 @@ void SmallMailbox::setLong( uint32_t v )
 	DPR( dMAILBOX | dMAILBOXVALUES, "] set to: [");
 	hexPrint( dMAILBOX | dMAILBOXVALUES, contents, 4 );
 	DPR( dMAILBOX | dMAILBOXVALUES, "] as long: [");
-	DPR( dMAILBOX | dMAILBOXVALUES, __contents );
+	DPR( dMAILBOX | dMAILBOXVALUES, *(uint32_t *)contents );
 	DLN( dMAILBOX | dMAILBOXVALUES, "]");
 }
 
-uint32_t SmallMailbox::getLong()
+uint32_t IntegerMailbox::getLong()
 {
 	return ( __contents );
 }
 
-int32_t SmallMailbox::getLongSigned()
+int32_t IntegerMailbox::getLongSigned()
 {
 	return ( (signed long)__contents );
 }
 
-
-
 // Consider forking this
 
-void SmallMailbox::enqueueEvent( KeyEvent kv )
+void IntegerMailbox::enqueueEvent( KeyEvent kv )
 {
 	uint32_t tmp;
 	memcpy( &tmp, &kv, sizeof( tmp ));
 	setLong( tmp );
 }
 
-KeyEvent *SmallMailbox::getValueAsKeyEventPtr()
+KeyEvent *IntegerMailbox::getValueAsKeyEventPtr()
 {
 	return (KeyEvent *)contents;
 }

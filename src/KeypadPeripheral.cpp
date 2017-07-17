@@ -39,7 +39,7 @@ void KeypadPeripheral::onMailboxChange( Mailbox *m, bool wasTriggered )
 	DPF( dANY, "Got a mailbox change\n");
 
 	if( m == &keypadMailboxSvc.event ) {
-		SmallMailbox *km = (SmallMailbox *)m;
+		IntegerMailbox *km = (IntegerMailbox *)m;
 		if( wasTriggered )
 			if( keyEventHandler )
 				keyEventHandler( km->getValueAsKeyEventPtr() );

@@ -58,7 +58,7 @@ class Mailbox {
 public:
 	uint8_t *contents;
 	const char *description;
-	uint8_t size;
+	uint8_t mailboxSize;
 	uint8_t synchronized;
 	// 0 if the last update was over net, 1 if last update from API
 	uint8_t callerChanged;
@@ -87,27 +87,11 @@ struct KeyEvent {
 } __attribute__((packed)); // magic to prevent compiler from aligning contents of struct
 
 
-
-// #if( sizeof(KeyEventMessage) != sizeof(long) )
-// #error "KeyEventMessage must be exactly 4 bytes"
-// #endif
-
-
-// I'm still getting used to the C++ model of observers and delegates. Not
-// sure if this is really the right level of abstraction.
-
-// struct SmallMailboxEvent {
-// 	enum Type { CHANGE } type;
-// 	Mailbox mailbox;
-// 	bool triggered;
-// };
-
-
-
-
-// Small mailbox is an implementation of a mailbox of a small number of bytes
-// like an RGB value or an integer.  It always uses opcode 0 to update
-// (transmission of whole value) and it doesn't worry about version numbers.
+// Small mailbox is an abstract implementation of a mailbox of a small number
+// of bytes like an RGB value or an integer. The mailbox size must allow the
+// entire mailbox to be updated in a single packet. It always uses opcode 0 to
+// update (transmission of whole value) and it doesn't worry about version
+// numbers.
 
 class SmallMailbox : public Mailbox {
 
@@ -120,12 +104,25 @@ public:
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
 
+	// ******* Smallmailbox specific stuff follows here:
+
+//	virtual void configureStorage() = 0;
+
 	// typedef void (*OnChangeHandler)(SmallMailbox *m, bool hasChanged );
 	// OnChangeHandler onChange = 0;
 
 	bool changeTrigger; // One shot for change notifications
 
 	Interval retryTimer = Interval(1000);
+};
+
+
+
+
+class IntegerMailbox : public SmallMailbox {
+public:
+	IntegerMailbox(uint8_t configFlags, const char *d);
+//	virtual void configureStorage();
 
 	void setLong( uint32_t v );
 	uint32_t getLong();
@@ -135,13 +132,12 @@ public:
 	void enqueueEvent( KeyEvent kv );
 	KeyEvent *getValueAsKeyEventPtr();
 
-
-//	SmallMailboxEvent curentEvent;
-
 private:
 	uint32_t __contents;
-
 };
+
+
+
 
 
 #endif
