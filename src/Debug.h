@@ -60,7 +60,7 @@
 #define DFL( mask )	    		if( ((mask) & (DEBUGLEVEL)) > 0 ) { DEBUGSERIAL.flush(); }
 #define DLN( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebugln( X ); }
 #define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
-#define HPR( mask, ptr, size )  if( ((mask) & (DEBUGLEVEL)) > 0 ) { hexPrint( ptr, size ) }
+#define HPR( mask, ptr, size )  if( ((mask) & (DEBUGLEVEL)) > 0 ) { hexPrint( mask, ptr, size ); }
 
 
 #ifndef ARDUINO

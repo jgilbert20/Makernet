@@ -17,6 +17,10 @@
 #include <Mailbox.h>
 #include <MailboxService.h>
 
+struct GPIO_PWMSettings {
+	uint8_t pwm[16];
+};
+
 // This is a subclass of the mailbox dictionary. Every peripheral should have
 // one so that the mailbox configuration is constant between the peripheral
 // code and the object host code. To use it, create member variables for each
@@ -28,6 +32,7 @@ public:
 	IntegerMailbox pinModes   = IntegerMailbox( 0, "pinModes" );
 	IntegerMailbox pinValues  = IntegerMailbox( 0, "pinValues" );
 	IntegerMailbox pwmEnables = IntegerMailbox( 0, "pwmEnables" );
+	StructMailbox<GPIO_PWMSettings> pwmStruct = StructMailbox<GPIO_PWMSettings>( 0, "pwmSettings" );
 	virtual void configure() {
 		set( 0, pinModes );
 		set( 1, pinValues );

@@ -131,13 +131,13 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		synchronized = 1;
 		callerChanged = 0;
 
-		DPR( dMAILBOX|dMAILBOXVALUES, "&&&& Mailbox value recv: [");
-		DPR( dMAILBOX|dMAILBOXVALUES, description );
-		DPR( dMAILBOX|dMAILBOXVALUES, "] updated over network to: [");
-		HPR( dMAILBOX|dMAILBOXVALUES, reinterpret_cast<uint8_t *>(contents), mailboxSize );
-		DPR( dMAILBOX|dMAILBOXVALUES, "] as ui32: [");
-		DPR( dMAILBOX|dMAILBOXVALUES, *(uint32_t *)contents );
-		DLN( dMAILBOX|dMAILBOXVALUES, "]");
+		DPR( dMAILBOX | dMAILBOXVALUES, "&&&& Mailbox value recv: [");
+		DPR( dMAILBOX | dMAILBOXVALUES, description );
+		DPR( dMAILBOX | dMAILBOXVALUES, "] updated over network to: [");
+		HPR( dMAILBOX | dMAILBOXVALUES, reinterpret_cast<uint8_t *>(contents), mailboxSize );
+		DPR( dMAILBOX | dMAILBOXVALUES, "] as ui32: [");
+		DPR( dMAILBOX | dMAILBOXVALUES, *(uint32_t *)contents );
+		DLN( dMAILBOX | dMAILBOXVALUES, "]");
 
 		// The _CHANGE varient is triggered once when a caller has issued the changes
 		// as opposed to a value being sent over during a synchronization. As soon
@@ -189,6 +189,14 @@ void SmallMailbox::trigger()
 	callerChanged = 1;
 	changeTrigger = 1;
 	retryTimer.trigger();
+
+	DPR( dMAILBOX | dMAILBOXVALUES, "&&&& MailboxChange - TRIGGERED: [");
+	DPR( dMAILBOX | dMAILBOXVALUES, description );
+	DPR( dMAILBOX | dMAILBOXVALUES, "] set to: [");
+	hexPrint( dMAILBOX | dMAILBOXVALUES, contents, 4 );
+	DPR( dMAILBOX | dMAILBOXVALUES, "] as long: [");
+	DPR( dMAILBOX | dMAILBOXVALUES, *(uint32_t *)contents );
+	DLN( dMAILBOX | dMAILBOXVALUES, "]");
 }
 
 
@@ -209,19 +217,9 @@ void IntegerMailbox::setLong( uint32_t v )
 {
 	__contents = v;
 
-	retryTimer.trigger();
+trigger();
 
-	synchronized = 0;
-	callerChanged = 1;
-	changeTrigger = 1;
 
-	DPR( dMAILBOX | dMAILBOXVALUES, "&&&& MailboxChange: [");
-	DPR( dMAILBOX | dMAILBOXVALUES, description );
-	DPR( dMAILBOX | dMAILBOXVALUES, "] set to: [");
-	hexPrint( dMAILBOX | dMAILBOXVALUES, contents, 4 );
-	DPR( dMAILBOX | dMAILBOXVALUES, "] as long: [");
-	DPR( dMAILBOX | dMAILBOXVALUES, *(uint32_t *)contents );
-	DLN( dMAILBOX | dMAILBOXVALUES, "]");
 }
 
 uint32_t IntegerMailbox::getLong()

@@ -14,6 +14,7 @@
 
 #include <Types.h>
 #include <Interval.h>
+#include <strings.h>
 
 #define MB_ROLE_CONTROLLER 0x1
 #define MB_ROLE_DEVICE 0x2
@@ -65,7 +66,7 @@ public:
 
 	uint8_t flags;
 
-	IMailboxObserver *observer; 
+	IMailboxObserver *observer;
 
 	virtual void busReset();
 	virtual void trigger() = 0;
@@ -137,6 +138,24 @@ private:
 };
 
 
+
+template<typename T>
+class StructMailbox : public SmallMailbox {
+public:
+	StructMailbox( uint8_t configFlags, const char *d )
+		: SmallMailbox( configFlags, d ) {
+		mailboxSize = sizeof(T);
+		contents = (uint8_t *)(void *)&__contents;
+		if ( contents != NULL and mailboxSize > 0 )
+			memset( contents, 0, mailboxSize );
+	}
+
+	T getValue() { return __contents; };
+	void setValue(T newValue ) { __contents = newValue; trigger(); };
+
+private:
+	T __contents;
+};
 
 
 
