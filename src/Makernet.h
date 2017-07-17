@@ -26,6 +26,7 @@
 // Peripherals
 #include <EncoderPeripheral.h>
 #include <KeypadPeripheral.h>
+#include <GPIOPeripheral.h>
 
 // Datalinks
 #include <I2CDatalink.h>

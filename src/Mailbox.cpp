@@ -16,6 +16,7 @@
 #include <Globals.h>
 #include <Makernet.h>
 
+#include <ArduinoAPI.h>
 #include <strings.h>
 
 void Mailbox::busReset()
@@ -58,6 +59,12 @@ int SmallMailbox::hasPendingChanges()
 	}
 
 	return !synchronized;
+}
+
+
+void SmallMailbox::onChangeHandler( OnChangeHandler h ) 
+{
+	fpChangeHandler = h; 
 }
 
 struct SmallMailboxMessage {
@@ -148,6 +155,12 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 		if ( observer != NULL )
 			observer->onMailboxChange( this, changeTrigger );
+
+		// Why two callbacks? Because I don't have a clean std::function 
+		// that could represent both commonly used callback styles
+
+		if( fpChangeHandler != NULL )
+			fpChangeHandler( this, changeTrigger );
 
 		changeTrigger = 0;
 

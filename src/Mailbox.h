@@ -15,6 +15,7 @@
 #include <Types.h>
 #include <Interval.h>
 #include <strings.h>
+#include <ArduinoAPI.h>
 
 #define MB_ROLE_CONTROLLER 0x1
 #define MB_ROLE_DEVICE 0x2
@@ -109,8 +110,9 @@ public:
 
 //	virtual void configureStorage() = 0;
 
-	// typedef void (*OnChangeHandler)(SmallMailbox *m, bool hasChanged );
-	// OnChangeHandler onChange = 0;
+	typedef void (*OnChangeHandler)(SmallMailbox *m, bool wasTriggered );
+	OnChangeHandler fpChangeHandler = 0;
+	void onChangeHandler( OnChangeHandler h );
 
 	bool changeTrigger; // One shot for change notifications
 

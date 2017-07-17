@@ -292,7 +292,7 @@ the general rule for pairing is that first we seek to find an exact hardware mat
 all of this is implemented by populating a deviceprofile object and passing it to "requestPair()". On true, the pairing is established and the address is assigned. On false, the next eligble object is consulted.
 
 
-# Revisiting mailboxes
+# Revisiting mailboxes (work in progress)
 
 For the GPIO, we ideally need mailboxes that handle more than 4 bytes, e.g. for a vector of PWM values
 
@@ -321,10 +321,28 @@ But we can do better then that, right? the client theorieticlly also knows how m
 the way TCP works is that usually the receiver sends back the sequence of the next transmission its expecting. this generates a bit of pacing, allowing a more sophisticaed algorithim to slow down to match the incoming rate of the acks.
 
 
+# Mailbox next generation
 
+Mailbox structure is fine for many small things but current impl doesn't handle streaming of any kind, efficient updates in the case of only partial changes, or multiple things that are queued.
 
+Some primary use cases:
 
+1. Receiver is entirely based on opcodes, such as a drawing buffer. In this case, an opcode is a command followed by some variable length number of arguments. The opcodes must be processed in the order they are generated to be valid. In the case of a reset of any kind (buffer overload, network hop) both sides must agree to reset the communication entirely. 
+2. Receiver is based on a large structure such as a vector of RGB values. In this case not the entire buffer may change. The previous buffer does serve as a very good basis for the next "buffer."
+3. Something else is flowing over the network such as an upload of a sound file or maybe even new firmware. In this case, a large amount of data that is of variable length must come over the wire. This transfer has a definitive end (EOF) and there is a desire to avoid having to use escape characters or other tricky things to know when that is the case.
 
+The following design principals come out of this:
+
+1. The TCP mechanism must have a definitive "end of file" message, for instance a CLOSE. But since connections are semi-permanent, in our case it is really an EOM primitive.
+2. Sometimes the receiving buffer is fixed and other times it is a ring buffer that always has the "last N" bytes. In the case of a ring structure, both sides must agree what the starting point should be in the case of an incremental update, or possibly, incremental updates would simply be invalid.
+3. In the pure stream case, it is useful that the receiver communicate the sequence number behind which all bytes have been accounted for. However, this is not relevant in the incremental update case since the receiver doesn't have an accurate idea of what the next transmission may need to be.
+4. In the incremental update case, the fallback should always be to just transmit the whole buffer in the form of small subsections or packets. More clever stuff (e.g. twiddling a single arbitrary byte or range of bytes) can always degenerate to this base case in case of a lost synchronization.
+
+It seems one very obvious segmentation of use cases is around if the stream is "rewindable" or capable of handling partial updates. So which is a degenerate of the other? Or are they both instriniscally different?
+
+Reading the original TCP RFC it almost seems like sequence numbers were for file offsets or something. Somehow sending a stream ends up being a degenerate case of just sending a message with an arbitrarily long "letter" size.
+
+thought experiment - what if both sides were aware of a maximum rewindable number of bytes. E.g the maximim range that the reset could bring back? 
 
 
 
