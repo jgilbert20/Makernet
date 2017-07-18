@@ -191,7 +191,7 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 //  3 : NACK on transmit of data
 //  4 : Other error
 
-		if ( r != 0 ) {
+		if ( r != 0 && r != 2 ) {
 			DPF( dDATALINK | dWARNING, "Short write error=%d\n", r );
 		}
 
@@ -261,6 +261,7 @@ void I2CDatalink::initialize()
 	else
 	{
 		Wire.begin();
+		Wire.setClock(1000000);
 	}
 
 }

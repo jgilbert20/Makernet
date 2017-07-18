@@ -1,7 +1,8 @@
 #include <Makernet.h>
 
 I2CDatalink um;
-
+EncoderPeripheral enc;
+GPIOPeripheral gpio;
 KeypadPeripheral keypad;
 
 
@@ -20,7 +21,8 @@ void handleKeyPress( KeyEvent *e )
 
   bool isDown = e->action == KeyEvent::Action::PRESSED or e->action == KeyEvent::Action::HELD;
 
- 
+  if( e->key >= '1' && e->key <= '9' )
+    gpio.digitalWrite( 11 -(e->key-'1'), isDown );
 }
 
 void setup() {
@@ -32,21 +34,25 @@ void setup() {
   Makernet.initialize( DeviceType::Controller );
 
   keypad.onKeyEvent( handleKeyPress );
-  pinMode(6, OUTPUT ); 
+
+  for ( int i = 0 ; i < 13 ; i++ )
+  {
+    gpio.digitalWrite( i, LOW );
+    gpio.pinMode( i, OUTPUT );
+  }
+
+
 }
 
 Interval i = Interval(1000);
 bool v = false;
 
 void loop() {
-  
-long m = micros();
-digitalWrite(6, HIGH );
+  if ( i.hasPassed() ) {
+    v = !v;
+    gpio.digitalWrite( 8, v );
+  }
   Makernet.loop();
-  digitalWrite(6, LOW );
-  int t =  micros() - m;
-  if( t > 100 )
-  Serial.println(t );
 }
 
 

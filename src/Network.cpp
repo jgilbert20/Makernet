@@ -83,7 +83,7 @@ int Network::pollPacket(Packet *p)
 // Internal handler that polls all services for their next packet and
 // generates exactly one packet onto the wire. This route is only used in
 // peer-to-peer, not for I2C-like transactional communciation, and it is
-// called by the master loop. Returns 1 if a packet was snet, otherwise 0. 
+// called by the master loop. Returns 1 if a packet was snet, otherwise 0.
 
 int Network::sendNextPacket()
 {
@@ -116,13 +116,30 @@ void Network::loop()
 		DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d], addr [%d]\n",
 		     Makernet.generation, Makernet.hardwareID, Makernet.deviceType, address );
 
+	// If on the last loop call we generated a packet, send it back now
+	if (pendingPacket)
+	{
+		DLN( dROUTE, "Route: Deferred packet sendback!" );
+		// if ( Makernet.network.role == Network::slave )
+		// 	DLN( dALL, "WARNING: not fully tested code path!");
+		int retValSend = sendPacket( (Packet *)datalink->frameBuffer );
+		if ( retValSend < 0 )
+		{
+			DPR( dNETWORK | dERROR, "Route: Immediate packet sendback failed, err=" );
+			DPR( dNETWORK | dERROR, retValSend );
+			DLN( dNETWORK | dERROR );
+		}
+		pendingPacket = 0;
+	}
+
+
 	// Send up to three packets per loop
 	if ( Makernet.network.role != slave )
-		for ( int i = 0 ; i < 3 ; i++ ) {
+		for ( int i = 0 ; i < 1 ; i++ ) {
 			DLN( dNETWORK, "******");
-			DPF( dNETWORK, "Network: Requesting sendNextPacket time# %d\n", i );			
-			if( sendNextPacket() == 0 )
-				return; 
+			DPF( dNETWORK, "Network: Requesting sendNextPacket time# %d\n", i );
+			if ( sendNextPacket() == 0 )
+				return;
 		}
 }
 
@@ -132,7 +149,7 @@ void Network::loop()
 
 void Network::busReset()
 {
-	DLN( dNETWORK|dRESET, "Network: Resetting all services");
+	DLN( dNETWORK | dRESET, "Network: Resetting all services");
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
 		if ( s != NULL )
@@ -155,6 +172,7 @@ void Network::issueBusReset()
 // fine. Positive return values have meaning TBD (could mean a reply is queued
 // in the future.)
 
+#define DOIMMEDIATE 0
 
 int Network::routePacket( Packet *p )
 {
@@ -195,18 +213,27 @@ int Network::routePacket( Packet *p )
 
 	if ( retVal > 0 )
 	{
-		DLN( dROUTE, "Route: Immediate packet sendback!" );
-		// if ( Makernet.network.role == Network::slave )
-		// 	DLN( dALL, "WARNING: not fully tested code path!");
-		int retValSend = sendPacket( p );
-		if ( retValSend < 0 )
-		{
-			DPR( dNETWORK | dERROR, "Route: Immediate packet sendback failed, err=" );
-			DPR( dNETWORK | dERROR, retValSend );
-			DLN( dNETWORK | dERROR );
-			return retValSend;
+		// This is the case where delivery of the packet has generated 
+		// something we need to return. We either return it right away,
+		// or wait for the next ::loop() call. Deferring this has the benefit
+		// of reducing latency on the loop call. 
+
+		if ( DOIMMEDIATE ) {
+			DLN( dROUTE, "Route: Immediate packet sendback!" );
+			// if ( Makernet.network.role == Network::slave )
+			// 	DLN( dALL, "WARNING: not fully tested code path!");
+			int retValSend = sendPacket( p );
+			if ( retValSend < 0 )
+			{
+				DPR( dNETWORK | dERROR, "Route: Immediate packet sendback failed, err=" );
+				DPR( dNETWORK | dERROR, retValSend );
+				DLN( dNETWORK | dERROR );
+				return retValSend;
+			}
+			return 0;
 		}
-		return 0;
+		else
+			pendingPacket = true;
 	}
 
 	if ( retVal < 0 )
@@ -264,12 +291,12 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	DLN( dNETWORK );
 
 	// Surpress this warning - its extremely common because I2C code in Arduino
-	// routinely doesn't detect when the client is "done" and reads the full length 
+	// routinely doesn't detect when the client is "done" and reads the full length
 	// of the buffer
-#if 0 
+#if 0
 	if ( packetSizeWithCRC != len)
 		DPF( dNETWORK | dWARNING, "%%%%%%%% WARNING: Inbound frame size [%d] != frameSize [%d]; ignoring extras!\n", packetSizeWithCRC, len  )
-#endif 
+#endif
 		// Verify checksum
 		uint8_t calculatedCRC = calculateCRC(0, buffer, packetSize );
 	uint8_t presentedCRC = buffer[packetSize];

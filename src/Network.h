@@ -84,6 +84,8 @@ public:
 	int address;
 	Service *services[NUM_PORTS];
 
+
+	bool pendingPacket = false; 
 private:
 
 DeviceControlService deviceControlSvc;
