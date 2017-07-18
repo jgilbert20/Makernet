@@ -98,6 +98,8 @@ int SmallMailbox::generateMessage( uint8_t *buffer, int size )
 
 	retryTimer.reset();
 
+	DPR( dMAILBOX, "&&&& New packet generated...");
+
 	return sizeof( SmallMailboxMessage ) + mailboxSize;
 }
 
@@ -230,7 +232,7 @@ void IntegerMailbox::setLong( uint32_t v )
 {
 	__contents = v;
 
-trigger();
+	trigger();
 
 
 }

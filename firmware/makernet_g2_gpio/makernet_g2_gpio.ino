@@ -17,7 +17,7 @@ uint32_t pwmEnables = 0; // 0 = disable, 1 = enable
 
 Interval reportInterval(2000);
 
-
+// FPS 114K with no PWMs (-O3)
 
 void pinModeChange( SmallMailbox *m, bool wasTriggered )
 {
@@ -100,6 +100,7 @@ void loop() {
   totalFrames++;
   pwmCounter++;
 
+if(0)
   for ( int i = 0 ; i < MAKERNET_GPIOMODULE_NUMPINS ; i++ )
     if ( (pinModes & pwmEnables) & (1 << i) ) {
       if ( pwmDuty[i] >= pwmCounter ) {

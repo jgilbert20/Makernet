@@ -51,7 +51,7 @@ void Network::useDatalink( Datalink *dl)
 
 int Network::pollPacket(Packet *p)
 {
-	DLN( dPOLL, "Network::polling all services and peripherals for packets");
+	// DLN( dPOLL, "Network::polling all services and peripherals for packets");
 
 	// Find the next service that has a packet to send
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
@@ -63,8 +63,13 @@ int Network::pollPacket(Packet *p)
 		}
 	}
 
+//   DLN( dPOLL, "Network::polling all peripherals");
+
+
 #if CONTROLLER_SUPPORT
 	// If we are the master, do the same for every BasePeripheral object
+
+
 	if ( role == Network::master ) {
 		int r = BasePeripheral::pollPacket(p);
 		if ( r > 0 )

@@ -41,7 +41,7 @@ public:
 };
 
 
-class GPIOPeripheral : public BasePeripheral, public IMailboxObserver {
+class GPIOPeripheral : public BasePeripheral {
 public:
 	GPIOPeripheral();
 	virtual void configure();
