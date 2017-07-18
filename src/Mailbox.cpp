@@ -62,10 +62,10 @@ int SmallMailbox::hasPendingChanges()
 }
 
 
-void SmallMailbox::onChangeHandler( OnChangeHandler h ) 
-{
-	fpChangeHandler = h; 
-}
+// void SmallMailbox::onChange( MailboxChangeCallback h ) 
+// {
+// 	fpChangeHandler = h; 
+// }
 
 struct SmallMailboxMessage {
 	enum class Command : uint8_t { SEND_VALUE, ACK_VALUE, SEND_VALUE_CHANGE } command;

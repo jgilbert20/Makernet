@@ -19,9 +19,11 @@
 #include <Interval.h>
 #include <Network.h>
 #include <Service.h>
+#include <Mailbox.h>
 #include <DeviceControlService.h>
 #include <MailboxService.h>
 #include <MakernetSingleton.h>
+
 
 // Peripherals
 #include <EncoderPeripheral.h>

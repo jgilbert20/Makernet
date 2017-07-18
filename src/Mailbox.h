@@ -37,9 +37,10 @@ public:
 // triggers a push to a remote mailbox. Remote mailboxes can easily be used to
 // convey all sorts of information and configuration to and from a device.
 // What's desirable about this arrangement is that a device can be fully reset
-// and then recover its "configuration" when reconnection occurs. Furthermore,
-// a mailbox can act as a trigger point, allowing one-shot events like button
-// up or down events, to be communicated reliably (and one-time only) to a
+// and then recover its "configuration" when reconnection occurs without any
+// further intervention or knowledge of the user's logic. Furthermore, a
+// mailbox can act as a trigger point, allowing one-shot events like button up
+// or down events, to be communicated reliably (and one-time only) to a
 // controller.
 //
 // The Mailbox class represents a single one of these item places, and Mailbox
@@ -95,6 +96,8 @@ struct KeyEvent {
 // update (transmission of whole value) and it doesn't worry about version
 // numbers.
 
+// class SmallMailbox;
+
 class SmallMailbox : public Mailbox {
 
 public:
@@ -105,14 +108,14 @@ public:
 	virtual int generateMessage( uint8_t *buffer, int size );
 	virtual int handleMessage( uint8_t *buffer, int size );
 	virtual int hasPendingChanges();
-
 	// ******* Smallmailbox specific stuff follows here:
 
 //	virtual void configureStorage() = 0;
 
-	typedef void (*OnChangeHandler)(SmallMailbox *m, bool wasTriggered );
-	OnChangeHandler fpChangeHandler = 0;
-	void onChangeHandler( OnChangeHandler h );
+	typedef void (* MailboxChangeCallback)(SmallMailbox *m, bool wasTriggered );
+
+	MailboxChangeCallback fpChangeHandler;
+	void onChange( MailboxChangeCallback h ) { fpChangeHandler = h; };
 
 	bool changeTrigger; // One shot for change notifications
 
