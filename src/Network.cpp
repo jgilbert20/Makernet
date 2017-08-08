@@ -111,6 +111,7 @@ Interval topOfLoop = Interval(1000);
 
 void Network::loop()
 {
+	// DLN( dNETWORK, "++ Top of net loop");
 
 	if ( topOfLoop.hasPassed() )
 		DPF( dNETWORK, "--- Network Loop :: Generation [%d], hardwareID [%d], deviceType [%d], addr [%d]\n",
@@ -130,12 +131,18 @@ void Network::loop()
 			DLN( dNETWORK | dERROR );
 		}
 		pendingPacket = 0;
+
+
+		// CONTROVERSIAL - could cause starvation, but may be important for
+		// time critical applications
+		return;
 	}
 
 
 	// Send up to three packets per loop
 	if ( Makernet.network.role != slave )
-		for ( int i = 0 ; i < 1 ; i++ ) {
+		for ( int i = 0 ; i < 1 ; i++ ) 
+	{
 			DLN( dNETWORK, "******");
 			DPF( dNETWORK, "Network: Requesting sendNextPacket time# %d\n", i );
 			if ( sendNextPacket() == 0 )
@@ -209,7 +216,13 @@ int Network::routePacket( Packet *p )
 	if ( service == NULL )
 		return ( -5203 );
 
+
+	long m = micros();
 	int retVal =  service->handlePacket( p );
+	DST( dTIMING );
+	DPR( dTIMING,  "Service dispatch took us=");
+	DPR( dTIMING,  micros() - m );
+	DLN( dTIMING );
 
 	if ( retVal > 0 )
 	{
@@ -232,8 +245,10 @@ int Network::routePacket( Packet *p )
 			}
 			return 0;
 		}
-		else
+		else {
 			pendingPacket = true;
+			Serial.println( "Deferred..");
+		}
 	}
 
 	if ( retVal < 0 )

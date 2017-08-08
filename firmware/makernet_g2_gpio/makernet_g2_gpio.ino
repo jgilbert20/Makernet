@@ -64,7 +64,7 @@ void pwmEnableChange( SmallMailbox *m, bool wasTriggered )
 void pwmStructChange( SmallMailbox *m, bool wasTriggered )
 {
   GPIO_PWMSettings settings = ((StructMailbox<GPIO_PWMSettings> *)m)->getValue();
-  
+
   DEBUGSERIAL.print( "Setting PWM mode: 0x" );
   DEBUGSERIAL.println( pwmEnables , HEX );
 
@@ -77,6 +77,7 @@ void pwmStructChange( SmallMailbox *m, bool wasTriggered )
 
 void setup() {
   while ( !Serial );
+  Serial.begin(115200);
 
   gms.pinModes.onChange( pinModeChange );
   gms.pinValues.onChange( pinValueChange );
@@ -87,27 +88,27 @@ void setup() {
   for ( int i = 0 ; i < MAKERNET_GPIOMODULE_NUMPINS ; i++ )
     pinMode( physicalPinForLogical[i], INPUT );
 
-  Serial.begin(115200);
+
 
   Makernet.initialize( DeviceType::GPIO, gms );
 }
 
 
-#pragma GCC optimize ("O3")
+// #pragma GCC optimize ("O3")
 
 
 void loop() {
   totalFrames++;
   pwmCounter++;
 
-if(0)
-  for ( int i = 0 ; i < MAKERNET_GPIOMODULE_NUMPINS ; i++ )
-    if ( (pinModes & pwmEnables) & (1 << i) ) {
-      if ( pwmDuty[i] >= pwmCounter ) {
-        digitalWrite( physicalPinForLogical[i], HIGH );
-      } else
-        digitalWrite( physicalPinForLogical[i], LOW );
-    }
+  if (1)
+    for ( int i = 0 ; i < MAKERNET_GPIOMODULE_NUMPINS ; i++ )
+      if ( (pinModes & pwmEnables) & (1 << i) ) {
+        if ( pwmDuty[i] >= pwmCounter ) {
+          digitalWrite( physicalPinForLogical[i], HIGH );
+        } else
+          digitalWrite( physicalPinForLogical[i], LOW );
+      }
 
   if ( reportInterval.hasPassed() ) {
     DEBUGSERIAL.print( "GPIO Board :: " );

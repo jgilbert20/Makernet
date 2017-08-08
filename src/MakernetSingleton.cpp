@@ -99,6 +99,7 @@ void _Makernet::loop()
 	if ( reportingInterval.hasPassed() ){
 //		DPF( dSTATUSMSG, "+++ STATUS: hwID[%d] type[%d] gen[%d] millis=[%u]\n", hardwareID, deviceType, generation, millis() );
 
+		DST( dSTATUSMSG );
 		DPR( dSTATUSMSG, "+++ STATUS: hwID[");
 		DPR( dSTATUSMSG, hardwareID );
 		DPR( dSTATUSMSG, "] millis=[");

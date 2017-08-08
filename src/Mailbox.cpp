@@ -116,6 +116,7 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 	        msg->command == SmallMailboxMessage::Command::SEND_VALUE_CHANGE ) {
 		if ( callerChanged ) {
 			// Contention case. Here both sides have updated the mailbox.
+			DST( dMAILBOX );
 			DPR( dMAILBOX, "&&&& Contention: Incoming mailbox push when callerChanged=1");
 			DLN( dMAILBOX );
 
@@ -140,6 +141,8 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		synchronized = 1;
 		callerChanged = 0;
 
+
+		DST( dMAILBOX | dMAILBOXVALUES );
 		DPR( dMAILBOX | dMAILBOXVALUES, "&&&& Mailbox value recv: [");
 		DPR( dMAILBOX | dMAILBOXVALUES, description );
 		DPR( dMAILBOX | dMAILBOXVALUES, "] updated over network to: [");
@@ -147,6 +150,10 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 		DPR( dMAILBOX | dMAILBOXVALUES, "] as ui32: [");
 		DPR( dMAILBOX | dMAILBOXVALUES, *(uint32_t *)contents );
 		DLN( dMAILBOX | dMAILBOXVALUES, "]");
+
+
+		DST( dMAILBOX | dMAILBOXVALUES | dTIMING );
+		DLN( dMAILBOX | dMAILBOXVALUES | dTIMING, "Calling user handlers");
 
 		// The _CHANGE varient is triggered once when a caller has issued the changes
 		// as opposed to a value being sent over during a synchronization. As soon
@@ -163,6 +170,9 @@ int SmallMailbox::handleMessage( uint8_t *buffer, int size )
 
 		if( fpChangeHandler != NULL )
 			fpChangeHandler( this, changeTrigger );
+
+		DST( dMAILBOX | dMAILBOXVALUES | dTIMING );
+		DLN( dMAILBOX | dMAILBOXVALUES | dTIMING, "User handlers done");
 
 		changeTrigger = 0;
 

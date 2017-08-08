@@ -52,7 +52,8 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	receiveEventCount++;
 
 	uint8_t p = 0;
-
+	
+	DST( dDATALINK );
 	DPR( dDATALINK, ">>>> (");
 	DPR( dDATALINK, howMany );
 	DPR( dDATALINK, ") ");
@@ -72,11 +73,13 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	DLN( dDATALINK, ")");
 	DFL( dDATALINK );
 
+	DST( dDATALINK );
 	DLN( dDATALINK, "^^^^ Sending frame up to network layer" );
 
 	_datalink->returnFrameSize = 0;
 	Makernet.network.handleFrame( _datalink->frameBuffer, p );
 
+	DST( dDATALINK );
 	DLN( dDATALINK, "^^^^ Frame handled" );
 
 	if ( _datalink->returnFrameSize > 0 ) {
@@ -154,6 +157,8 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 	} else if ( CONTROLLER_SUPPORT and Makernet.network.role == Network::master ) {
 		// Master sending case
 
+		DPR( dDATALINK, micros() );
+		DPR( dDATALINK, ":  ");
 		DPR( dDATALINK, "<<<< (" );
 		DPR( dDATALINK, len );
 		DPR( dDATALINK, ") ");
@@ -168,18 +173,24 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			uint8_t c = frameBuffer[i];
 			actual += Wire.write(c);
 
-			if ( c < 0x10 )
-				DPR( dDATALINK, "0" );
-			DPR( dDATALINK, c, HEX );
-			DPR( dDATALINK, " ");
+			// Not sure why we'd need to futher instrument this anymore,
+			// has never been a problem
+			//if ( c < 0x10 )
+				//DPR( dDATALINK, "0" );
+			//DPR( dDATALINK, c, HEX );
+			//DPR( dDATALINK, " ");
 		}
 
-		DLN( dDATALINK );
-		DFL( dDATALINK );
+		//DLN( dDATALINK );
+		//DFL( dDATALINK );
 
 		if ( len != actual ) {
 			DPF( dDATALINK | dWARNING, "WARN: Short write %d vs %d\n", actual, len );
 		}
+
+		DPR( dDATALINK, micros() );
+		DPR( dDATALINK, ":  ");
+		DLN( dDATALINK, "Ending transmission");
 
 		int r = Wire.endTransmission(true);    // stop transmitting
 
@@ -200,10 +211,14 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 		// 	Wire.read();
 		// }
 
-//		DLN( dDATALINK, "Starting read...");
+		DPR( dDATALINK, micros() );
+		DPR( dDATALINK, ":  ");
+		DLN( dDATALINK, "Starting read...");
 
 		uint8_t recvSize = Wire.requestFrom(9, MAX_MAKERNET_FRAME_LENGTH);    // request 6 bytes from slave device #8
 
+		DPR( dDATALINK, micros() );
+		DPR( dDATALINK, ":  ");
 		DPR( dDATALINK, ">>>> ");
 		DPR( dDATALINK, " (" );
 		DPR( dDATALINK, recvSize );
@@ -229,7 +244,7 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			if ( c == 0xFF ) ffCount++;
 		}
 
-		DPR( dDATALINK, "READ DONE, actual sz=" );
+		DPR( dDATALINK, "Actual sz=" );
 		DPR( dDATALINK, count );
 		DLN( dDATALINK );
 

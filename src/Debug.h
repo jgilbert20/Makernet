@@ -29,13 +29,14 @@
 #define dRESET        1 << 12
 #define dMAILBOXVALUES        1 << 13
 #define dSTLEMBED        1 << 14
+#define dTIMING        1 << 15
 
 #define dALL          0xFFFFFFFF
 #define dANY          0xFFFFFFFF
 #define dNONE         0x00000000
 
 // #define DEBUGLEVEL    dMAILBOXVALUES|dSTATUSMSG|dMAILBOX|dWARNING|dERROR|dSTATUSMSG|dSTLEMBED
-#define DEBUGLEVEL    dMAILBOXVALUES|dSTATUSMSG
+// #define DEBUGLEVEL    dMAILBOXVALUES|dSTATUSMSG|dERROR|dWARNING|dDATALINK|dROUTE|dTIMING
 // #define DEBUGLEVEL dMAILBOXVALUES|dSTATUSMSG|dMAILBOX|dDCS|dWARNING|dERROR|dMAILBOX
 #define DEBUGLEVEL 0 
 
@@ -56,7 +57,10 @@
 // DLN = print a single value with a newline
 // DPF = printf
 
+extern unsigned long debugLastLineUS;
+
 #define DPR( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebug( X ); }
+#define DST( mask )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { unsigned long m = micros(); printDebug( m ); printDebug( "us (+" ); printDebug( m - debugLastLineUS ); printDebug( ") :: ");  debugLastLineUS = m;    }
 #define DFL( mask )	    		if( ((mask) & (DEBUGLEVEL)) > 0 ) { DEBUGSERIAL.flush(); }
 #define DLN( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebugln( X ); }
 #define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }

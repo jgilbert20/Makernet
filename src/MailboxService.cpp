@@ -98,10 +98,11 @@ int MailboxService::pollPacket( Packet *p )
 	// Check if we have a valid destination configured
 
 	if ( defaultEndpoint == NULL or defaultEndpoint->address == ADDR_UNASSIGNED ) {
-		DLN( dNETWORK, "WARNING: mailbox disabled due to defaultEnpoint not being set" );
-		DPF( dNETWORK, "defaultEndpoint null =%d\n", defaultEndpoint == NULL );
-		if ( defaultEndpoint != NULL )
-			DPF( dNETWORK, "defaultEndpoint addr =%d\n", defaultEndpoint->address );
+		// Some warnings here, but disabling for the time being
+		// DLN( dNETWORK, "WARNING: mailbox disabled due to defaultEnpoint not being set" );
+		// DPF( dNETWORK, "defaultEndpoint null =%d\n", defaultEndpoint == NULL );
+		// if ( defaultEndpoint != NULL )
+		//	DPF( dNETWORK, "defaultEndpoint addr =%d\n", defaultEndpoint->address );
 		return 0;
 	}
 

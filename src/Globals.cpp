@@ -10,3 +10,5 @@
  ********************************************************/
 
 #include <Globals.h>
+
+unsigned long debugLastLineUS = 0;
