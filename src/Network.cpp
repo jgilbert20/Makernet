@@ -138,6 +138,9 @@ void Network::loop()
 		return;
 	}
 
+	// Pass along the loop to lower level driver. This may actually 
+	datalink->loop(); 
+
 
 	// Send up to three packets per loop
 	if ( Makernet.network.role != slave )

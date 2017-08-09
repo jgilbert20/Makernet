@@ -56,9 +56,8 @@ int DeviceControlService::handlePacket(Packet *p)
 
 	DeviceControlMessage *dm = (DeviceControlMessage *)p->payload;
 
-	// dSLOWLOOP
-	// DPR( dDCS, "DCS: handle packet, cmd=");
-	// DLN( dDCS, dm->command );
+	DPR( dDCS, "DCS: handle packet, cmd=");
+	DLN( dDCS, dm->command, HEX );
 
 #if CONTROLLER_SUPPORT
 	if ( dm->command == DCS_REQUEST_ADDRESS && Makernet.network.role == Network::master ) {

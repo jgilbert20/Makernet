@@ -15,9 +15,11 @@
 #include <BasePeripheral.h>
 #include <MailboxService.h>
 #include <I2CDatalink.h>
+#include <RadioheadDatalink.h>
 
 #ifdef ARDUINO
 I2CDatalink i2cDatalink;
+RadioheadDatalink rhDatalink;
 #endif 
 
 void _Makernet::initialize( DeviceType d, MailboxService &ms )
@@ -51,7 +53,8 @@ void _Makernet::initialize( DeviceType d )
 	}
 
 #ifdef ARDUINO
-	Makernet.network.useDatalink( &i2cDatalink );
+//	Makernet.network.useDatalink( &i2cDatalink );
+	Makernet.network.useDatalink( &rhDatalink );
 #endif
 
 	network.initialize();

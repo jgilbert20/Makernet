@@ -29,7 +29,7 @@ public:
 	virtual void initialize() = 0;
 	// Called by upper layers to send a frame. Zero means everything OK. Negative is errors
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len ) = 0;
-
+	virtual void loop(); 
 	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH+1];
 	uint8_t address;
 

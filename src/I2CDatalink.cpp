@@ -14,7 +14,6 @@
 #include <I2CDatalink.h>
 #include <Debug.h>
 #include <Network.h>
-// #include <MakernetSingleton.h>
 #include <Types.h>
 
 #define MAKERNET_BROADCAST_I2C 0x09
@@ -54,7 +53,7 @@ static void I2CDatalink_receiveEvent(int howMany) {
 	uint8_t p = 0;
 	
 	DST( dDATALINK );
-	DPR( dDATALINK, ">>>> (");
+	DPR( dDATALINK, ">>>> I2C (");
 	DPR( dDATALINK, howMany );
 	DPR( dDATALINK, ") ");
 	DFL( dDATALINK );
@@ -125,7 +124,7 @@ static void I2CDatalink_requestEvent() {
 
 	int b = Wire.write( _datalink->frameBuffer, _datalink->returnFrameSize );
 
-	DPR( dDATALINK, "<<<< " );
+	DPR( dDATALINK, "<<<< I2C " );
 	hexPrint( dDATALINK, _datalink->frameBuffer, _datalink->returnFrameSize );
 	DLN( dDATALINK );
 
@@ -157,9 +156,9 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 	} else if ( CONTROLLER_SUPPORT and Makernet.network.role == Network::master ) {
 		// Master sending case
 
-		DPR( dDATALINK, micros() );
+		DST( dDATALINK );
 		DPR( dDATALINK, ":  ");
-		DPR( dDATALINK, "<<<< (" );
+		DPR( dDATALINK, "<<<< I2C (" );
 		DPR( dDATALINK, len );
 		DPR( dDATALINK, ") ");
 		hexPrint( dDATALINK, inBuffer, len );
@@ -188,9 +187,9 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 			DPF( dDATALINK | dWARNING, "WARN: Short write %d vs %d\n", actual, len );
 		}
 
-		DPR( dDATALINK, micros() );
-		DPR( dDATALINK, ":  ");
-		DLN( dDATALINK, "Ending transmission");
+		// DST( dDATALINK );
+		// DPR( dDATALINK, ":  ");
+		// DLN( dDATALINK, "Ending transmission");
 
 		int r = Wire.endTransmission(true);    // stop transmitting
 
@@ -211,15 +210,15 @@ int I2CDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 		// 	Wire.read();
 		// }
 
-		DPR( dDATALINK, micros() );
-		DPR( dDATALINK, ":  ");
-		DLN( dDATALINK, "Starting read...");
+		// DST( dDATALINK  );
+		// DPR( dDATALINK, ":  ");
+		// DLN( dDATALINK, "Starting read...");
 
 		uint8_t recvSize = Wire.requestFrom(9, MAX_MAKERNET_FRAME_LENGTH);    // request 6 bytes from slave device #8
 
-		DPR( dDATALINK, micros() );
+		DST( dDATALINK  );
 		DPR( dDATALINK, ":  ");
-		DPR( dDATALINK, ">>>> ");
+		DPR( dDATALINK, ">>>> I2C ");
 		DPR( dDATALINK, " (" );
 		DPR( dDATALINK, recvSize );
 		DPR( dDATALINK, ") ");

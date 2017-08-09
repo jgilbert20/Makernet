@@ -32,6 +32,7 @@
 
 // Datalinks
 #include <I2CDatalink.h>
+#include <RadioheadDatalink.h>
 
 
 #endif

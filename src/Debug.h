@@ -38,7 +38,8 @@
 // #define DEBUGLEVEL    dMAILBOXVALUES|dSTATUSMSG|dMAILBOX|dWARNING|dERROR|dSTATUSMSG|dSTLEMBED
 // #define DEBUGLEVEL    dMAILBOXVALUES|dSTATUSMSG|dERROR|dWARNING|dDATALINK|dROUTE|dTIMING
 // #define DEBUGLEVEL dMAILBOXVALUES|dSTATUSMSG|dMAILBOX|dDCS|dWARNING|dERROR|dMAILBOX
-#define DEBUGLEVEL 0 
+//#define DEBUGLEVEL  dSTATUSMSG|dWARNING|dERROR|dDATALINK
+#define DEBUGLEVEL dALL
 
 
 //|dSTATUSMSG|dDCS|dERROR|dWARNING|dDATALINK
@@ -60,7 +61,7 @@
 extern unsigned long debugLastLineUS;
 
 #define DPR( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebug( X ); }
-#define DST( mask )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { unsigned long m = micros(); printDebug( m ); printDebug( "us (+" ); printDebug( m - debugLastLineUS ); printDebug( ") :: ");  debugLastLineUS = m;    }
+#define DST( mask )	    		if( ((mask) & (DEBUGLEVEL)) > 0 ) { unsigned long m = micros(); printDebug( m ); printDebug( "us (+" ); char debugBuffer[255]; snprintf( debugBuffer, 255, "%10d", m - debugLastLineUS ); printDebug( debugBuffer ); printDebug( ") :: ");  debugLastLineUS = m;    }
 #define DFL( mask )	    		if( ((mask) & (DEBUGLEVEL)) > 0 ) { DEBUGSERIAL.flush(); }
 #define DLN( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { printDebugln( X ); }
 #define DPF( mask, X... )	    if( ((mask) & (DEBUGLEVEL)) > 0 ) { char debugBuffer[255]; snprintf( debugBuffer, 255, X ); printDebug( debugBuffer ); }
