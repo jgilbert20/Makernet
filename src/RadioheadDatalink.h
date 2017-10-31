@@ -12,7 +12,7 @@
 #ifndef RADIOHEAD_DATALINK_H
 #define RADIOHEAD_DATALINK_H
 
-#ifdef ARDUINO
+#if( defined(ARDUINO) && defined(RADIO_SUPPORT) )
 
 #include <Debug.h>
 #include <Network.h>
@@ -30,7 +30,8 @@ public:
 	virtual void initialize();
 	virtual int sendFrame( uint8_t *inBuffer, uint8_t len );
 	virtual void loop();
-
+	const bool datalinkDrivesPolling = false;
+	
 private:
 	RH_RF69 rf69 = RH_RF69(8, 3);
 

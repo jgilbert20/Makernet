@@ -9,7 +9,7 @@
  **
  ********************************************************/
 
-#ifdef ARDUINO
+#if( defined(ARDUINO) && defined(RADIO_SUPPORT) )
 
 #include <RadioheadDatalink.h>
 #include <Debug.h>
@@ -78,7 +78,13 @@ int RadioheadDatalink::sendFrame( uint8_t *inBuffer, uint8_t len )
 	hexPrint( dDATALINK, inBuffer, len );
 	DLN( dDATALINK );
 
-	rf69.send(inBuffer, len);
+	bool r = rf69.send(inBuffer, len);
+
+	DST( dDATALINK );
+	DPR( dDATALINK, "send() called, return=" );
+	DPR( dDATALINK, r ? "TRUE" : "FALSE" );
+	DLN( dDATALINK );
+
 	rf69.waitPacketSent();
 
 	DST( dDATALINK );

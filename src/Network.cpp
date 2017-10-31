@@ -53,6 +53,9 @@ int Network::pollPacket(Packet *p)
 {
 	// DLN( dPOLL, "Network::polling all services and peripherals for packets");
 
+	if(pendingPacket)
+		DPR( dERROR, "Internal assert, should not be polling for a new packet while one is pending!\n");
+
 	// Find the next service that has a packet to send
 	for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 		Service *s = services[i];
@@ -87,6 +90,9 @@ int Network::pollPacket(Packet *p)
 
 int Network::sendNextPacket()
 {
+	if(pendingPacket)
+		DPR( dERROR, "Internal assert, should not be sending a new packet while one is pending!\n");
+
 	Packet *p = (Packet *)datalink->frameBuffer;
 	p->clear();
 	p->src = address;
@@ -138,16 +144,23 @@ void Network::loop()
 		return;
 	}
 
-	// Pass along the loop to lower level driver. This may actually 
-	datalink->loop(); 
+	// Pass along the loop to lower level driver. This may actually be what
+	// triggers the receipt of new packets depending on the driver's
+	// architecture.
+	datalink->loop();
 
+
+	// Check if a packet has been queued for next loop(). If so, take no further action
+	if( pendingPacket )
+		return;
 
 	// Send up to three packets per loop
-	if ( Makernet.network.role != slave )
-		for ( int i = 0 ; i < 1 ; i++ ) 
-	{
-			DLN( dNETWORK, "******");
-			DPF( dNETWORK, "Network: Requesting sendNextPacket time# %d\n", i );
+    //	if ( Makernet.network.role != slave or !datalink->datalinkDrivesPolling )
+	if ( 1 )
+		for ( int i = 0 ; i < 1 ; i++ )
+		{
+			//	DLN( dNETWORK, "******");
+			//		DPF( dNETWORK, "Network: Requesting sendNextPacket time# %d\n", i );
 			if ( sendNextPacket() == 0 )
 				return;
 		}
@@ -229,10 +242,10 @@ int Network::routePacket( Packet *p )
 
 	if ( retVal > 0 )
 	{
-		// This is the case where delivery of the packet has generated 
+		// This is the case where delivery of the packet has generated
 		// something we need to return. We either return it right away,
 		// or wait for the next ::loop() call. Deferring this has the benefit
-		// of reducing latency on the loop call. 
+		// of reducing latency on the loop call.
 
 		if ( DOIMMEDIATE ) {
 			DLN( dROUTE, "Route: Immediate packet sendback!" );
@@ -250,7 +263,9 @@ int Network::routePacket( Packet *p )
 		}
 		else {
 			pendingPacket = true;
-			Serial.println( "Deferred..");
+			DST( dROUTE);
+			DPR( dROUTE, "Route: My reply packet is being deferred.." );
+			DLN( dROUTE);
 		}
 	}
 
@@ -286,10 +301,16 @@ void Network::handleFrame(uint8_t *buffer, uint8_t len )
 	if ( len <= 0 or buffer == NULL ) return;
 	Packet *mp = (Packet *)buffer;
 
-	if (!((mp->dest == ADDR_BROADCAST) or (address == ADDR_UNASSIGNED) or (address == mp->dest ))) {
-		DLN( dNETWORK | dWARNING, "handleFrame: Dropping packet not for us");
-		return;
-	}
+	DPF( dNETWORK, "Inbound frame, my address = %i\n", address );
+
+
+	// drop unless broadcast packet or i have an assigned address and this packet is for me
+	// drop if destination is not broadcast or if i am unassined or if the packet isn't for me
+	if (mp->dest != ADDR_BROADCAST)
+		if ( (address == ADDR_UNASSIGNED) or (address != mp->dest )) {
+			DLN( dNETWORK | dWARNING, "handleFrame: Dropping packet not for us");
+			return;
+		}
 
 	if ( mp->destPort < 0 or mp->destPort >= NUM_PORTS ) {
 		DLN( dNETWORK | dERROR, "handleFrame: Dropping invalid packet port.");
@@ -405,6 +426,7 @@ int Network::finalizePacketToFrame( Packet *p )
 	if ( p == NULL )
 		return -3000;
 
+	DST( dNETWORK );
 	DPR( dNETWORK, "Finalize: ");
 	hexPrint( dNETWORK, (uint8_t *)p, 25 );
 	DLN( dNETWORK );

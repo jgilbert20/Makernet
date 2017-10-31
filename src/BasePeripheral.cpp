@@ -121,7 +121,7 @@ int BasePeripheral::registerService( int port, Service* s )
 
 int BasePeripheral::pollPacket( Packet *p )
 {
-	DLN( dPOLL, "BP:pollPacket()");
+	// DLN( dPOLL, "BP:pollPacket()");
 	for (BasePeripheral *bp = _firstPeripheral; bp != NULL ; bp = bp->_nextPeripheral)
 		for ( int i = 0 ; i < NUM_PORTS ; i++ ) {
 			Service *s = bp->services[i];

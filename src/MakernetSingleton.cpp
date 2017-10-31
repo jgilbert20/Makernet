@@ -19,8 +19,12 @@
 
 #ifdef ARDUINO
 I2CDatalink i2cDatalink;
-RadioheadDatalink rhDatalink;
+
 #endif 
+
+#if( defined(ARDUINO) && defined(RADIO_SUPPORT) )
+RadioheadDatalink rhDatalink;
+#endif
 
 void _Makernet::initialize( DeviceType d, MailboxService &ms )
 {
@@ -52,8 +56,11 @@ void _Makernet::initialize( DeviceType d )
 		Makernet.network.role = Network::slave;
 	}
 
-#ifdef ARDUINO
+
 //	Makernet.network.useDatalink( &i2cDatalink );
+
+
+#if( defined(ARDUINO) && defined(RADIO_SUPPORT) )
 	Makernet.network.useDatalink( &rhDatalink );
 #endif
 

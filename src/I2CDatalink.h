@@ -31,6 +31,7 @@ public:
 
 	// Flag that tracks if we have a packet to respond with (slave mode only)
 	int returnFrameSize;
+	const bool datalinkDrivesPolling = true;
 private:
 
 

@@ -32,7 +32,7 @@ public:
 	virtual void loop(); 
 	uint8_t frameBuffer[MAX_MAKERNET_FRAME_LENGTH+1];
 	uint8_t address;
-
+	const bool datalinkDrivesPolling = true;
 };
 
 #endif

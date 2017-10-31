@@ -83,7 +83,7 @@ void MailboxService::pointPacketToEndpoint( Packet *p )
 	p->dest = defaultEndpoint->address;
 	p->destPort = PORT_MAILBOX;
 
-	DPR( dNETWORK, "Point: ");
+	DPR( dNETWORK, "MSS Point to endpoint: " );
 	hexPrint( dNETWORK, (uint8_t *)p, 25 );
 	DLN( dNETWORK );
 

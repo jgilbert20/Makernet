@@ -94,7 +94,8 @@ int DeviceControlService::handlePacket(Packet *p)
 				   );
 
 
-				DPF( dDCS | dRESET, "RESET DCS: Issuing reset to proxy");
+				DPF( dDCS | dRESET, "RESET DCS: Issuing reset to proxy\n");
+
 				// Tell the proxy object to reset its state
 				proxy->busReset();
 
