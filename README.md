@@ -2,6 +2,10 @@
 
 Makernet is a general-purpose modular framework for making interactive electronics projects. Makernet radically simplifies the work of connecting and coding for projects that that are made up of different devices such as displays, keyboards, knobs, switches, LED strips, sound playing devices, etc. It aims to bring 21st-century concepts of clean abstraction and modularity to hardware design.
 
+An early demonstration video here:
+
+[Video](https://www.youtube.com/watch?v=rZLKJq-t7fU)
+
 With Makernet, designing interactive projects is less painful, more fun, and way more flexible. 
 
 Makernet is comprised of several elements:
