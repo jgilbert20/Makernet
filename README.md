@@ -27,6 +27,31 @@ You might think that the extra complexity of a network layer adds unnecessary ex
 ## GM1200 - Knob
 This is a daisy-chainable Knob with RGB backlighting. It uses a high-efficiency polling interface to only use the I2C bus when the knob has been moved. No soldering is required - the network and power are all provided over the 6-pin connectors. Any number of Knobs can be added to the project and each will receive its own bus address by the master.
 
+Usage example:
+
+	#include <Makernet.h>
+	
+	EncoderPeripheral encoder;
+	
+	void setup() {
+	  Serial.begin(57600);
+	  Makernet.begin();
+	  encoder.onPositionChange( handleEncoderChange );
+	}
+	
+	void loop() {
+	  Makernet.loop();
+	}
+	
+	void handleEncoderChange( EncoderPeripheral *p )
+	{
+	  int pos = p->getPosition();
+	
+	  Serial.print( "Encoder changed to: " );
+	  Serial.println( pos );
+	}
+
+
 ![GM1200](images/GM1200-front.jpg) ![GM1200](images/GM1200-back.jpg)
 
 ## GM1203 - Illuminated LED Button Panel
@@ -42,11 +67,6 @@ This is a ring of 24 little RGB addressable LEDs that let you make a dial interf
 
 ## GM1400 - Illuminated LED Button Panel
 This is a SSD1306 OLED with 128x64 pixels measuring about 1.3". The project communicates using a high level graphics protocol for drawing text and graphics. The actual rendering is done on a 48 Mhrz 32-bit ARM processor, offloading effort from the main project MCU. No soldering is required - the network and power are all provided over the 6-pin connectors. 
-
-![GM1400](images/GM1400-front.jpg) ![GM1400](images/GM1400-back.jpg)
-
-## GM1400 - Illuminated LED Button Panel
-This is a SSD1306 OLED with 128x64 pixels measuring about 1.3". The project communicates using a high level graphics protocol for drawing text and graphics. The actual rendering is done on a 48 Mhrz 32-bit ARM processor, offloading effort from the main project MCU.
 
 ![GM1400](images/GM1400-front.jpg) ![GM1400](images/GM1400-back.jpg)
 
