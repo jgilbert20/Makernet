@@ -25,10 +25,40 @@ You might think that the extra complexity of a network layer adds unnecessary ex
 # Device Lineup
 
 ## GM1200 - Knob
-This is a daisy-chainable Knob with RGB backlightingn
+This is a daisy-chainable Knob with RGB backlighting. It uses a high-efficiency polling interface to only use the I2C bus when the knob has been moved. No soldering is required - the network and power are all provided over the 6-pin connectors. Any number of Knobs can be added to the project and each will receive its own bus address by the master.
+
 ![GM1200](images/GM1200-front.jpg) ![GM1200](images/GM1200-back.jpg)
 
+## GM1203 - Illuminated LED Button Panel
+This is a daisy-chainable set of buttons. It uses a high-efficiency polling interface to only use the I2C bus when the buttons have been pressed. No soldering is required - the network and power are all provided over the 6-pin connectors. Any number of Knobs can be added to the project and each will receive its own bus address by the master.
 
+![GM1203](images/GM1203-front.jpg) ![GM1203](images/GM1203-back.jpg)
+
+
+## GM1303 - Illuminated LED Button Panel
+This is a ring of 24 little RGB addressable LEDs that let you make a dial interface. (The hole allows you to mount a GM1200 Knob inside!) There is no need to interface the LEDs directly. A small chip on the board translates your I2C commands and controls the LEDs for you. No soldering is required - the network and power are all provided over the 6-pin connectors. Any number of these buttons can be added to the project and each will receive its own bus address by the master.
+
+![GM1303](images/GM1303-front.jpg) ![GM1303](images/GM1303-back.jpg)
+
+## GM1400 - Illuminated LED Button Panel
+This is a SSD1306 OLED with 128x64 pixels measuring about 1.3". The project communicates using a high level graphics protocol for drawing text and graphics. The actual rendering is done on a 48 Mhrz 32-bit ARM processor, offloading effort from the main project MCU. No soldering is required - the network and power are all provided over the 6-pin connectors. 
+
+![GM1400](images/GM1400-front.jpg) ![GM1400](images/GM1400-back.jpg)
+
+## GM1400 - Illuminated LED Button Panel
+This is a SSD1306 OLED with 128x64 pixels measuring about 1.3". The project communicates using a high level graphics protocol for drawing text and graphics. The actual rendering is done on a 48 Mhrz 32-bit ARM processor, offloading effort from the main project MCU.
+
+![GM1400](images/GM1400-front.jpg) ![GM1400](images/GM1400-back.jpg)
+
+## GM1501 - SAMD21 Mainboard
+This is a Arduino-compatible 32-bit ARM processor that is intended to serve as the "main" processor for your project. This is where you'll load your code. It has two 6-pin Makernet connectors that let you connect other Makernet devices without soldering.
+
+![GM1501](images/GM1501-front.jpg) ![GM1501](images/GM1501-back.jpg)
+
+## GM1601 - SAMD21 Mainboard with RFM69 Radio
+This is a Arduino-compatible 32-bit ARM processor that is intended to serve as the "main" processor for your project. It also has an embedded packet radio that allows you to extend and bridge the Makernet network over a wireless connection. It has two 6-pin Makernet connectors that let you connect other Makernet devices without soldering.
+
+![GM1601](images/GM1601-front.jpg) ![GM1601](images/GM1601-back.jpg)
 
 
 # Simple example: Hello World
