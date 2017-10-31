@@ -8,8 +8,6 @@ An early demonstration video here:
 
 With Makernet, designing interactive projects is less painful, more fun, and way more flexible. Makernet devices designed today include:
 
-
-
 Makernet is comprised of several elements:
 
 - A common network or field-bus (loosely based on I2C) that daisy-chains all project components with a 6-pin connector providing data, power and ground
@@ -23,6 +21,15 @@ The framework requires no soldering, is 100% Arduino compatible, and supports lo
 Makernet is aimed at artists, educators, students, hobbyists and prototypers. The aim is to democratize the creation of cool hardware and software, and make hardware work in a more clean, 21st century fashion. Because it is expandable and new designs can be added over time, Makernet is intended to seed an expanding ecosystem of compatible components and software.
 
 You might think that the extra complexity of a network layer adds unnecessary expense to a new project. However, the reality is that the prices of high-speed 32-bit ARM processors have fallen so low that the extra expense is negligible especially for prototyping and limited-run projects. Makernet compatibility adds less than $2.00 to the BOM of its peripherals in _single_ quantities, requiring nothing more than a commodity JST-SH connector and a $1.18 ATSAMD11 processor (plus a few passives like decoupling capacitors.) Peripherals do not need an external clock or any transceivers. 
+
+# Device Lineup
+
+## GM1200 - Knob
+This is a daisy-chainable Knob with RGB backlightingn
+![GM1200](images/GM1200-front.jpg) ![GM1200](images/GM1200-back.jpg)
+
+
+
 
 # Simple example: Hello World
 
