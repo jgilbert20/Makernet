@@ -4,9 +4,11 @@ Makernet is a general-purpose modular framework for making interactive electroni
 
 An early demonstration video here:
 
-[Video](https://www.youtube.com/watch?v=rZLKJq-t7fU)
+[![Image](images/youtube-video-thumb.png)](https://www.youtube.com/watch?v=rZLKJq-t7fU)
 
-With Makernet, designing interactive projects is less painful, more fun, and way more flexible. 
+With Makernet, designing interactive projects is less painful, more fun, and way more flexible. Makernet devices designed today include:
+
+
 
 Makernet is comprised of several elements:
 
