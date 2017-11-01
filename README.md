@@ -8,6 +8,8 @@ An early demonstration video here:
 
 [![Image](images/youtube-video-thumb.png)](https://www.youtube.com/watch?v=rZLKJq-t7fU)
 
+![Device concepts](images/early-proto-small.jpeg)
+
 With Makernet, designing interactive projects is less painful, more fun, and way more flexible. Makernet devices designed today include:
 
 Makernet is comprised of several elements:
@@ -23,6 +25,8 @@ The framework requires no soldering, is 100% Arduino compatible, and supports lo
 Makernet is aimed at artists, educators, students, hobbyists and prototypers. The aim is to democratize the creation of cool hardware and software, and make hardware work in a more clean, 21st century fashion. Because it is expandable and new designs can be added over time, Makernet is intended to seed an expanding ecosystem of compatible components and software.
 
 You might think that the extra complexity of a network layer adds unnecessary expense to a new project. However, the reality is that the prices of high-speed 32-bit ARM processors have fallen so low that the extra expense is negligible especially for prototyping and limited-run projects. Makernet compatibility adds less than $2.00 to the BOM of its peripherals in _single_ quantities, requiring nothing more than a commodity JST-SH connector and a $1.18 ATSAMD11 processor (plus a few passives like decoupling capacitors.) Peripherals do not need an external clock or any transceivers. 
+
+![Architecture](images/architecture-sm.jpeg)
 
 # Planned devices
 
@@ -91,6 +95,14 @@ This is a Arduino-compatible 32-bit ARM processor that is intended to serve as t
 This is a Arduino-compatible 32-bit ARM processor that is intended to serve as the "main" processor for your project. It also has an embedded packet radio that allows you to extend and bridge the Makernet network over a wireless connection. It has two 6-pin Makernet connectors that let you connect other Makernet devices without soldering.
 
 ![GM1601](images/GM1601-front.jpg) ![GM1601](images/GM1601-back.jpg)
+
+
+## GM1700 - Sound player
+Self contained SD card reader that can play WAV files with polyphonic mixing from a SD card. Triggered by I2C. Includes a 3W I2S amplifier.
+
+![GM1700](images/GM1700-demo.jpg) 
+
+
 
 
 # Makernet networking
