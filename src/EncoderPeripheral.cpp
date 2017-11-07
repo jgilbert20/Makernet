@@ -39,5 +39,5 @@ void EncoderPeripheral::configure()
 
 void EncoderPeripheral::onMailboxChange( Mailbox *m, bool wasTriggered )
 {
-
+	DPF( dANY, "Got a change!! %d\n" );
 }
